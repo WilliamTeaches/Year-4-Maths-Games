@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Year 4 Geometry Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#0e7a6a;--teal-dk:#0a5c50;--teal-lt:#e6f5f3;
+  --amber:#f4a522;--amber-dk:#d4881a;--amber-lt:#fef5e4;
+  --cream:#fffdf7;--green:#27ae60;--green-lt:#e8f8ee;
+  --red:#e74c3c;--red-lt:#fdf0ee;
+  --navy:#12384f;--muted:#888;--border:#e8e8e8;
+}
+body{font-family:'Nunito','Arial Rounded MT Bold',Arial,sans-serif;background:var(--cream);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;
+background-image:radial-gradient(circle at 12% 20%,rgba(14,122,106,.07) 0%,transparent 55%),radial-gradient(circle at 88% 78%,rgba(244,165,34,.07) 0%,transparent 55%);}
+#app{width:100%;max-width:660px;}
+
+/* Card */
+.card{background:#fff;border-radius:24px;padding:36px 36px 32px;box-shadow:0 8px 48px rgba(0,0,0,.09),0 2px 8px rgba(0,0,0,.05);animation:fadeUp .3s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Start */
+.logo{font-size:3rem;text-align:center;margin-bottom:10px;}
+h1{font-family:'Fredoka One',cursive;font-size:2.1rem;color:var(--navy);line-height:1.15;text-align:center;margin-bottom:6px;}
+.subtitle{text-align:center;color:var(--muted);font-size:.9rem;margin-bottom:26px;}
+.section-label{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#bbb;margin:18px 0 8px;}
+
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mode-btn{padding:10px 13px;border:2.5px solid var(--border);border-radius:13px;background:#fff;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.83rem;color:#555;transition:all .15s;text-align:left;line-height:1.3;}
+.mode-btn:hover{border-color:var(--teal);color:var(--teal);}
+.mode-btn.active{border-color:var(--teal);background:var(--teal);color:#fff;}
+.mode-btn:first-child{grid-column:1/-1;}
+
+.num-grid{display:flex;gap:10px;}
+.num-btn{flex:1;padding:11px;border:2.5px solid var(--border);border-radius:13px;background:#fff;cursor:pointer;font-family:'Fredoka One',cursive;font-size:1.2rem;color:#555;transition:all .15s;}
+.num-btn:hover{border-color:var(--teal);color:var(--teal);}
+.num-btn.active{border-color:var(--teal);background:var(--teal);color:#fff;}
+
+.go-btn{display:block;width:100%;margin-top:26px;padding:16px;background:var(--amber);color:#fff;border:none;border-radius:16px;font-family:'Fredoka One',cursive;font-size:1.35rem;cursor:pointer;box-shadow:0 4px 18px rgba(244,165,34,.35);transition:all .15s;}
+.go-btn:hover{background:var(--amber-dk);transform:translateY(-2px);}
+
+/* Progress */
+.progress-wrap{margin-bottom:26px;}
+.progress-meta{display:flex;justify-content:space-between;font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:7px;}
+.progress-bar{height:8px;background:#f0f0f0;border-radius:99px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),#1fcab3);border-radius:99px;transition:width .45s ease;}
+
+/* Question */
+.q-instr{font-size:.92rem;font-weight:700;color:#666;text-align:center;margin-bottom:14px;}
+.q-hint{font-size:.79rem;color:var(--muted);text-align:center;font-style:italic;margin-bottom:8px;}
+
+/* Shape display */
+.shape-display{display:flex;justify-content:center;align-items:center;margin:10px 0 16px;}
+.shape-display svg{max-width:200px;max-height:200px;}
+
+/* Diagram display (perimeter/area/translation) */
+.diagram-display{display:flex;justify-content:center;align-items:center;margin:8px 0 14px;}
+
+/* MC grid */
+.mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
+.mc-btn{padding:16px 10px;border:2.5px solid var(--border);border-radius:14px;background:#fff;cursor:pointer;font-family:'Fredoka One',cursive;font-size:1.4rem;color:var(--navy);transition:all .15s;display:flex;align-items:center;justify-content:center;min-height:70px;text-align:center;line-height:1.3;}
+.mc-btn.text{font-size:.92rem;font-family:'Nunito',sans-serif;font-weight:700;padding:14px;}
+.mc-btn:hover:not(:disabled){border-color:var(--teal);background:var(--teal-lt);}
+.mc-btn.correct{border-color:var(--green);background:var(--green);color:#fff;}
+.mc-btn.wrong  {border-color:var(--red);background:var(--red-lt);}
+.mc-btn.reveal {border-color:var(--green);background:var(--green-lt);}
+
+/* Canvas draw */
+.canvas-wrap{display:flex;flex-direction:column;align-items:center;margin:8px 0 10px;}
+.canvas-container{border:2.5px solid var(--border);border-radius:16px;overflow:hidden;cursor:crosshair;display:block;background:#fafeff;}
+.draw-hint{font-size:.8rem;color:var(--muted);font-style:italic;text-align:center;margin-bottom:8px;}
+
+/* TF buttons */
+.tf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
+.tf-btn{padding:18px;border:2.5px solid var(--border);border-radius:14px;background:#fff;cursor:pointer;font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--navy);transition:all .15s;text-align:center;}
+.tf-btn:hover:not(:disabled){border-color:var(--teal);background:var(--teal-lt);}
+.tf-btn.correct{border-color:var(--green);background:var(--green);color:#fff;}
+.tf-btn.wrong  {border-color:var(--red);background:var(--red-lt);}
+.tf-btn.reveal {border-color:var(--green);background:var(--green-lt);color:var(--green);}
+
+/* Feedback */
+.feedback{margin-top:14px;padding:13px 16px;border-radius:13px;font-size:.9rem;font-weight:700;display:flex;align-items:flex-start;gap:10px;}
+.feedback.ok{background:var(--green-lt);color:#1a7a40;}
+.feedback.no{background:var(--red-lt);color:#c0392b;}
+.feedback .icon{font-size:1.2rem;flex-shrink:0;margin-top:1px;}
+.feedback .sol{margin-top:5px;font-size:.86rem;opacity:.9;font-weight:600;}
+
+/* Buttons */
+.btn-next{display:block;width:100%;margin-top:10px;padding:14px;border:none;border-radius:14px;font-family:'Fredoka One',cursive;font-size:1.15rem;cursor:pointer;background:var(--amber);color:#fff;box-shadow:0 4px 16px rgba(244,165,34,.3);transition:all .15s;}
+.btn-next:hover{background:var(--amber-dk);}
+.btn-check{display:block;width:100%;margin-top:10px;padding:13px;border:none;border-radius:14px;font-family:'Fredoka One',cursive;font-size:1.1rem;cursor:pointer;background:var(--teal);color:#fff;transition:all .15s;}
+.btn-check:hover:not(:disabled){background:var(--teal-dk);}
+.btn-check:disabled{background:#ccc;cursor:default;}
+
+/* End */
+.score-wrap{text-align:center;margin:16px 0 22px;}
+.score-ring{width:130px;height:130px;border-radius:50%;background:linear-gradient(135deg,var(--teal),#1fcab3);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 14px;color:#fff;box-shadow:0 8px 28px rgba(14,122,106,.28);}
+.score-ring .big-num{font-family:'Fredoka One',cursive;font-size:2.7rem;line-height:1.05;}
+.score-ring .lbl{font-size:.7rem;opacity:.85;}
+.stars{font-size:2rem;margin-bottom:6px;}
+.score-msg{font-weight:700;color:#555;font-size:.95rem;}
+.review-hd{font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--navy);margin:22px 0 10px;border-top:2px solid var(--border);padding-top:20px;}
+.review-item{border:2px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:9px;}
+.review-item.r-wrong{border-color:#fde8e8;background:#fffbfb;}
+.review-q{font-size:.72rem;font-weight:800;color:var(--muted);margin-bottom:4px;letter-spacing:.04em;text-transform:uppercase;}
+.review-body{font-size:.88rem;color:#333;line-height:1.55;}
+.r-right{color:var(--green);font-weight:800;}
+.r-bad{color:var(--red);font-weight:800;}
+.btn-play{display:block;width:100%;margin-top:20px;padding:16px;background:var(--amber);color:#fff;border:none;border-radius:16px;font-family:'Fredoka One',cursive;font-size:1.35rem;cursor:pointer;box-shadow:0 4px 18px rgba(244,165,34,.35);transition:all .15s;}
+.btn-play:hover{background:var(--amber-dk);transform:translateY(-2px);}
+.btn-home{display:block;width:100%;margin-top:10px;padding:12px;border:2px solid var(--border);border-radius:14px;background:none;cursor:pointer;font-family:'Fredoka One',cursive;font-size:1rem;color:var(--muted);transition:all .15s;}
+.btn-home:hover{border-color:#aaa;color:#444;}
+h2{font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--navy);}
+
+@media(max-width:460px){.card{padding:24px 18px 22px;}h1{font-size:1.75rem;}.mc-btn{font-size:1.1rem;}.mode-grid{grid-template-columns:1fr;}.mode-btn:first-child{grid-column:auto;}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+/* =============================================================
+   HELPERS
+   ============================================================= */
+const pick  = a => a[Math.floor(Math.random()*a.length)];
+const shuffle = a => [...a].sort(()=>Math.random()-.5);
+const pickN = (a,n) => shuffle([...a]).slice(0,n);
+const rInt  = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+
+function centreOf(pts){
+  const cx=pts.reduce((s,p)=>s+p[0],0)/pts.length;
+  const cy=pts.reduce((s,p)=>s+p[1],0)/pts.length;
+  return pts.map(p=>[+(p[0]-cx).toFixed(2), +(p[1]-cy).toFixed(2)]);
+}
+function makeRegPoly(n,r){
+  const a=[]; const off=-Math.PI/2;
+  for(let i=0;i<n;i++) a.push([+(r*Math.cos(off+2*Math.PI*i/n)).toFixed(2), +(r*Math.sin(off+2*Math.PI*i/n)).toFixed(2)]);
+  return a;
+}
+function normAngle(d){ return((d%180)+180)%180; }
+function ptLineDist(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy);
+  if(len===0) return Math.hypot(px-ax,py-ay);
+  return Math.abs(dy*px-dx*py+bx*ay-by*ax)/len;
+}
+
+/* =============================================================
+   SHAPE LIBRARY
+   ============================================================= */
+const SHAPES = [
+  {id:'square',name:'Square',
+   pts:[[-60,-60],[60,-60],[60,60],[-60,60]],
+   sides:4,vertices:4,parallelPairs:2,regular:true,polygon:true,isQuad:true,isTriangle:false,
+   symAngles:[0,90,45,135],
+   distractors:['Rectangle','Rhombus','Pentagon','Parallelogram']},
+
+  {id:'rectangle',name:'Rectangle',
+   pts:[[-75,-45],[75,-45],[75,45],[-75,45]],
+   sides:4,vertices:4,parallelPairs:2,regular:false,polygon:true,isQuad:true,isTriangle:false,
+   symAngles:[0,90],
+   distractors:['Square','Trapezium','Parallelogram','Rhombus']},
+
+  {id:'equilateral_triangle',name:'Equilateral triangle',
+   pts:centreOf([[0,-70],[60.6,35],[-60.6,35]]),
+   sides:3,vertices:3,parallelPairs:0,regular:true,polygon:true,isQuad:false,isTriangle:true,
+   symAngles:[90,30,150],
+   distractors:['Isosceles triangle','Right-angled triangle','Pentagon','Hexagon']},
+
+  {id:'isosceles_triangle',name:'Isosceles triangle',
+   pts:centreOf([[0,-75],[50,40],[-50,40]]),
+   sides:3,vertices:3,parallelPairs:0,regular:false,polygon:true,isQuad:false,isTriangle:true,
+   symAngles:[90],
+   distractors:['Equilateral triangle','Scalene triangle','Right-angled triangle','Square']},
+
+  {id:'right_triangle',name:'Right-angled triangle',
+   pts:centreOf([[-55,-55],[55,-55],[-55,55]]),
+   sides:3,vertices:3,parallelPairs:0,regular:false,polygon:true,isQuad:false,isTriangle:true,
+   symAngles:[],
+   distractors:['Equilateral triangle','Isosceles triangle','Scalene triangle','Rectangle']},
+
+  {id:'pentagon',name:'Pentagon',
+   pts:makeRegPoly(5,65),
+   sides:5,vertices:5,parallelPairs:0,regular:true,polygon:true,isQuad:false,isTriangle:false,
+   symAngles:[90,18,162,54,126],
+   distractors:['Hexagon','Square','Triangle','Octagon']},
+
+  {id:'hexagon',name:'Hexagon',
+   pts:makeRegPoly(6,65),
+   sides:6,vertices:6,parallelPairs:3,regular:true,polygon:true,isQuad:false,isTriangle:false,
+   symAngles:[0,30,60,90,120,150],
+   distractors:['Pentagon','Octagon','Square','Heptagon']},
+
+  {id:'rhombus',name:'Rhombus',
+   pts:centreOf([[0,-65],[55,0],[0,65],[-55,0]]),
+   sides:4,vertices:4,parallelPairs:2,regular:false,polygon:true,isQuad:true,isTriangle:false,
+   symAngles:[90,0],
+   distractors:['Square','Rectangle','Kite','Parallelogram']},
+
+  {id:'kite',name:'Kite',
+   pts:centreOf([[0,-70],[50,-5],[0,60],[-50,-5]]),
+   sides:4,vertices:4,parallelPairs:0,regular:false,polygon:true,isQuad:true,isTriangle:false,
+   symAngles:[90],
+   distractors:['Rhombus','Square','Trapezium','Rectangle']},
+
+  {id:'parallelogram',name:'Parallelogram',
+   pts:centreOf([[25,-40],[90,-40],[60,40],[-5,40]]),
+   sides:4,vertices:4,parallelPairs:2,regular:false,polygon:true,isQuad:true,isTriangle:false,
+   symAngles:[],
+   distractors:['Rectangle','Rhombus','Trapezium','Square']},
+
+  {id:'trapezium',name:'Trapezium',
+   pts:centreOf([[-35,-40],[35,-40],[65,40],[-65,40]]),
+   sides:4,vertices:4,parallelPairs:1,regular:false,polygon:true,isQuad:true,isTriangle:false,
+   symAngles:[90],
+   distractors:['Parallelogram','Rectangle','Rhombus','Pentagon']},
+];
+
+/* =============================================================
+   SVG RENDERING
+   ============================================================= */
+const SVG_SIZE = 200;
+const SVG_CX   = 100;
+const SVG_SCALE= 1.2;
+const SVG_FILL = '#d4eaf7';
+const SVG_STROKE='#12384f';
+
+function shapeSVG(sh, fill=SVG_FILL, size=SVG_SIZE){
+  const cx=size/2;
+  const pts=sh.pts.map(([x,y])=>`${(cx+x*SVG_SCALE).toFixed(1)},${(cx+y*SVG_SCALE).toFixed(1)}`).join(' ');
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${pts}" fill="${fill}" stroke="${SVG_STROKE}" stroke-width="2.5" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// Labelled rectangle for perimeter/area
+function rectSVG(w, h, showDims, dimLabel, coloured){
+  const MAX=190; const PAD=30;
+  const sc=Math.min((MAX-PAD)/w,(MAX-PAD)/h,22);
+  const rw=w*sc, rh=h*sc;
+  const rx=(MAX-rw)/2+PAD/2, ry=(MAX-rh)/2+PAD/2;
+  const fill=coloured?'#b8d9f0':'#d4eaf7';
+  return `<svg viewBox="0 0 ${MAX} ${MAX}" width="${MAX}" height="${MAX}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${fill}" stroke="#12384f" stroke-width="2.5"/>
+    ${showDims?`
+    <text x="${rx+rw/2}" y="${ry-8}" text-anchor="middle" font-family="Fredoka One,cursive" font-size="15" fill="#0e7a6a">${w} ${dimLabel}</text>
+    <text x="${rx+rw+6}" y="${ry+rh/2}" dominant-baseline="middle" font-family="Fredoka One,cursive" font-size="15" fill="#0e7a6a">${h} ${dimLabel}</text>
+    `:''}
+  </svg>`;
+}
+
+// Grid of coloured squares for area counting
+function gridSVG(w,h){
+  const cs=Math.min(36,Math.floor(180/Math.max(w,h)));
+  const ox=10,oy=10;
+  let cells='';
+  for(let r=0;r<h;r++) for(let c=0;c<w;c++)
+    cells+=`<rect x="${ox+c*cs}" y="${oy+r*cs}" width="${cs}" height="${cs}" fill="#b8d9f0" stroke="#12384f" stroke-width="1.2"/>`;
+  return `<svg viewBox="0 0 ${w*cs+20} ${h*cs+20}" width="${w*cs+20}" height="${h*cs+20}" xmlns="http://www.w3.org/2000/svg">${cells}</svg>`;
+}
+
+// Coordinate grid showing translation
+function transGridSVG(ox,oy,nx,ny,size,showLabel){
+  const GR=8,CS=30,M=28;
+  const SW=M+GR*CS,SH=M+GR*CS;
+  // SVG y=0 is top; math y=0 is bottom → flip: sy = M + (GR-math_y)*CS
+  const sx=c=>M+c*CS, sy=c=>M+(GR-c)*CS;
+  let g='';
+  for(let i=0;i<=GR;i++){
+    g+=`<line x1="${sx(i)}" y1="${sy(GR)}" x2="${sx(i)}" y2="${sy(0)}" stroke="#e0e0e0" stroke-width="1"/>`;
+    g+=`<text x="${sx(i)}" y="${sy(0)+15}" text-anchor="middle" font-size="10" fill="#bbb" font-family="Nunito">${i}</text>`;
+    g+=`<line x1="${sx(0)}" y1="${sy(i)}" x2="${sx(GR)}" y2="${sy(i)}" stroke="#e0e0e0" stroke-width="1"/>`;
+    g+=`<text x="${sx(0)-7}" y="${sy(i)}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="#bbb" font-family="Nunito">${i}</text>`;
+  }
+  // Axes
+  g+=`<line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(GR)}" y2="${sy(0)}" stroke="#ccc" stroke-width="2"/>`;
+  g+=`<line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(0)}" y2="${sy(GR)}" stroke="#ccc" stroke-width="2"/>`;
+  // Original shape (dashed teal)
+  const origX=sx(ox), origY=sy(oy+size), origW=size*CS, origH=size*CS;
+  g+=`<rect x="${origX}" y="${origY}" width="${origW}" height="${origH}" fill="rgba(14,122,106,0.12)" stroke="#0e7a6a" stroke-width="2" stroke-dasharray="5,3"/>`;
+  // New shape (solid amber)
+  if(nx!==null){
+    const newX=sx(nx), newY=sy(ny+size);
+    g+=`<rect x="${newX}" y="${newY}" width="${origW}" height="${origH}" fill="rgba(244,165,34,0.25)" stroke="#f4a522" stroke-width="2.5"/>`;
+    // Arrow
+    const fcx=sx(ox)+origW/2, fcy=sy(oy)+origH/2;
+    const tcx=sx(nx)+origW/2, tcy=sy(ny)+origH/2;
+    g+=`<defs><marker id="arr" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,9 3,0 6" fill="#e74c3c"/></marker></defs>
+      <line x1="${fcx}" y1="${fcy}" x2="${tcx}" y2="${tcy}" stroke="#e74c3c" stroke-width="2.5" marker-end="url(#arr)"/>`;
+  }
+  // Label point A
+  if(showLabel){
+    g+=`<circle cx="${sx(ox)}" cy="${sy(oy)}" r="5" fill="#e74c3c"/>
+       <text x="${sx(ox)+7}" y="${sy(oy)-4}" font-family="Fredoka One,cursive" font-size="13" fill="#e74c3c">A</text>`;
+  }
+  return `<svg viewBox="0 0 ${SW} ${SH}" width="${SW}" height="${SH}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+
+/* =============================================================
+   QUESTION GENERATORS
+   ============================================================= */
+
+function qNameShape(){
+  const s=pick(SHAPES);
+  const others=shuffle(SHAPES.filter(x=>x.name!==s.name)).slice(0,3).map(x=>x.name);
+  return{type:'shapeQ',prop:'name',instruction:'What is the name of this shape?',shape:s,
+    answer:s.name,options:shuffle([s.name,...others]),
+    explanation:`This shape is a <strong>${s.name}</strong>.`,displayFn:'shapeSVG'};
+}
+
+function qCountSides(){
+  const s=pick(SHAPES);
+  const wrong=shuffle([2,3,4,5,6,7,8].filter(n=>n!==s.sides)).slice(0,3);
+  return{type:'shapeQ',prop:'sides',instruction:'How many sides does this shape have?',shape:s,
+    answer:s.sides,options:shuffle([s.sides,...wrong]),
+    explanation:`A <strong>${s.name}</strong> has <strong>${s.sides}</strong> sides.`,displayFn:'shapeSVG'};
+}
+
+function qCountVertices(){
+  const s=pick(SHAPES);
+  const wrong=shuffle([2,3,4,5,6,7,8].filter(n=>n!==s.vertices)).slice(0,3);
+  return{type:'shapeQ',prop:'vertices',instruction:'How many vertices (corners) does this shape have?',shape:s,
+    answer:s.vertices,options:shuffle([s.vertices,...wrong]),
+    explanation:`A <strong>${s.name}</strong> has <strong>${s.vertices}</strong> vertices.`,displayFn:'shapeSVG'};
+}
+
+function qParallelPairs(){
+  const s=pick(SHAPES.filter(x=>x.sides>=3));
+  const wrong=shuffle([0,1,2,3].filter(n=>n!==s.parallelPairs)).slice(0,3);
+  return{type:'shapeQ',prop:'parallelPairs',instruction:'How many pairs of parallel sides does this shape have?',shape:s,
+    answer:s.parallelPairs,options:shuffle([s.parallelPairs,...wrong]),
+    explanation:`A <strong>${s.name}</strong> has <strong>${s.parallelPairs}</strong> pair${s.parallelPairs===1?'':'s'} of parallel sides.`,displayFn:'shapeSVG'};
+}
+
+function qIsRegular(){
+  const s=pick(SHAPES);
+  const a=s.regular?'Regular':'Irregular';
+  return{type:'shapeQ',prop:'regular',instruction:'Is this shape regular or irregular?',shape:s,
+    answer:a,options:['Regular','Irregular'],
+    explanation:`A <strong>${s.name}</strong> is <strong>${a.toLowerCase()}</strong>. ${s.regular?'All its sides and angles are equal.':'Its sides or angles are not all equal.'}`,displayFn:'shapeSVG'};
+}
+
+function qIsPolygon(){
+  const s=pick(SHAPES);
+  return{type:'shapeQ',prop:'polygon',instruction:'Is this shape a polygon?',shape:s,
+    answer:'Yes',options:['Yes','No'],
+    explanation:`Yes — a <strong>${s.name}</strong> is a polygon. All these shapes are polygons (closed flat shapes with straight sides).`,displayFn:'shapeSVG'};
+}
+
+function qIsQuad(){
+  const s=pick(SHAPES);
+  const a=s.isQuad?'Yes':'No';
+  return{type:'shapeQ',prop:'quad',instruction:'Is this shape a quadrilateral?',shape:s,
+    answer:a,options:['Yes','No'],
+    explanation:`${s.isQuad?'Yes':'No'} — a <strong>${s.name}</strong> ${s.isQuad?'is':'is not'} a quadrilateral. Quadrilaterals have 4 sides.`,displayFn:'shapeSVG'};
+}
+
+function qSymCount(){
+  const s=pick(SHAPES);
+  const c=s.symAngles.length;
+  const wrong=shuffle([0,1,2,3,4,5,6].filter(n=>n!==c)).slice(0,3);
+  return{type:'shapeQ',prop:'sym',instruction:'How many lines of symmetry does this shape have?',shape:s,
+    answer:c,options:shuffle([c,...wrong]),
+    explanation:`A <strong>${s.name}</strong> has <strong>${c}</strong> line${c===1?'':'s'} of symmetry.`,displayFn:'shapeSVG'};
+}
+
+function qSymDraw(){
+  const s=pick(SHAPES.filter(x=>x.symAngles.length>0));
+  return{type:'symDraw',
+    instruction:`Draw a line of symmetry on the ${s.name}`,
+    hint:'Click and drag across the shape — the line must split it into two equal mirror halves.',
+    shape:s,answer:s.symAngles,
+    explanation:`The ${s.name} has ${s.symAngles.length} line${s.symAngles.length===1?'':'s'} of symmetry. The correct line${s.symAngles.length===1?' is':'s are'} shown in green.`};
+}
+
+function qPerimRect(){
+  const w=rInt(2,9), h=rInt(2,9);
+  const p=2*(w+h);
+  const wrong=shuffle([p+2,p-2,p+4,p+8,w*h,2*w,2*h].filter(n=>n>0&&n!==p)).slice(0,3);
+  return{type:'diagramQ',sub:'perim',instruction:'What is the perimeter of this rectangle?',
+    w,h,answer:p,options:shuffle([p,...wrong]),unit:'cm',
+    svg:rectSVG(w,h,true,'cm',false),
+    explanation:`Perimeter = 2 × (${w} + ${h}) = 2 × ${w+h} = <strong>${p} cm</strong>`};
+}
+
+function qPerimSquare(){
+  const s=rInt(2,10);
+  const p=4*s;
+  const wrong=shuffle([p+4,p-4,p+8,s*s,s*2].filter(n=>n>0&&n!==p)).slice(0,3);
+  return{type:'diagramQ',sub:'perim',instruction:'What is the perimeter of this square?',
+    w:s,h:s,answer:p,options:shuffle([p,...wrong]),unit:'cm',
+    svg:rectSVG(s,s,true,'cm',false),
+    explanation:`Perimeter = 4 × ${s} = <strong>${p} cm</strong>`};
+}
+
+function qAreaRect(){
+  const w=rInt(2,9), h=rInt(2,9);
+  const a=w*h;
+  const wrong=shuffle([a+2,a-2,a+4,2*(w+h),w+h,w*2,h*2].filter(n=>n>0&&n!==a)).slice(0,3);
+  return{type:'diagramQ',sub:'area',instruction:'What is the area of this rectangle?',
+    w,h,answer:a,options:shuffle([a,...wrong]),unit:'cm²',
+    svg:rectSVG(w,h,true,'cm',true),
+    explanation:`Area = ${w} × ${h} = <strong>${a} cm²</strong>`};
+}
+
+function qAreaCount(){
+  const w=rInt(2,6), h=rInt(2,5);
+  const a=w*h;
+  const wrong=shuffle([a+1,a-1,a+2,a+3,w+h].filter(n=>n>0&&n!==a)).slice(0,3);
+  return{type:'diagramQ',sub:'areaCount',instruction:'Count the squares. What is the area of this shape?',
+    w,h,answer:a,options:shuffle([a,...wrong]),unit:'squares',
+    svg:gridSVG(w,h),
+    explanation:`There are <strong>${a} squares</strong> in total (${w} × ${h} = ${a}).`};
+}
+
+function qTransDescribe(){
+  const sz=2;
+  let x,y,dx,dy,vdx,vdy;
+  let tries=0;
+  do{
+    x=rInt(0,5); y=rInt(0,5);
+    vdx=[-3,-2,-1,1,2,3].filter(d=>x+d>=0&&x+d+sz<=8);
+    vdy=[-3,-2,-1,1,2,3].filter(d=>y+d>=0&&y+d+sz<=8);
+    tries++;
+  }while((vdx.length<2||vdy.length<2)&&tries<20);
+  dx=pick(vdx); dy=pick(vdy);
+  const dirH=dx>0?`${dx} right`:`${-dx} left`;
+  const dirV=dy>0?`${dy} up`:`${-dy} down`;
+  const correct=`${dirH} and ${dirV}`;
+  const wrongs=new Set();
+  let t2=0;
+  while(wrongs.size<3&&t2<80){
+    t2++;
+    const wdx=pick([-3,-2,-1,1,2,3]);
+    const wdy=pick([-3,-2,-1,1,2,3]);
+    if(wdx===dx&&wdy===dy) continue;
+    const w=`${Math.abs(wdx)} ${wdx>0?'right':'left'} and ${Math.abs(wdy)} ${wdy>0?'up':'down'}`;
+    if(w!==correct) wrongs.add(w);
+  }
+  return{type:'transQ',sub:'describe',
+    instruction:'The teal shape has been translated. How was it moved?',
+    x,y,dx,dy,sz,
+    answer:correct,options:shuffle([correct,...[...wrongs].slice(0,3)]),
+    svg:transGridSVG(x,y,x+dx,y+dy,sz,false),
+    explanation:`The shape moved <strong>${correct}</strong>.`};
+}
+
+function qTransCoords(){
+  const sz=2;
+  let x,y,dx,dy,vdx,vdy,tries=0;
+  do{
+    x=rInt(1,5); y=rInt(1,5);
+    vdx=[-3,-2,-1,1,2,3].filter(d=>x+d>=0&&x+d+sz<=8);
+    vdy=[-3,-2,-1,1,2,3].filter(d=>y+d>=0&&y+d+sz<=8);
+    tries++;
+  }while((vdx.length<1||vdy.length<1)&&tries<20);
+  dx=pick(vdx); dy=pick(vdy);
+  const dirH=dx>0?`${dx} right`:`${-dx} left`;
+  const dirV=dy>0?`${dy} up`:`${-dy} down`;
+  const correct=`(${x+dx}, ${y+dy})`;
+  const wrongs=new Set();
+  let t2=0;
+  while(wrongs.size<3&&t2<80){
+    t2++;
+    const wx=rInt(0,8), wy=rInt(0,8);
+    const w=`(${wx}, ${wy})`;
+    if(w!==correct) wrongs.add(w);
+  }
+  return{type:'transQ',sub:'coords',
+    instruction:`Point A is at (${x},${y}). It is translated ${dirH} and ${dirV}. Where is Point A now?`,
+    x,y,dx,dy,sz,
+    answer:correct,options:shuffle([correct,...[...wrongs].slice(0,3)]),
+    svg:transGridSVG(x,y,null,null,sz,true),
+    explanation:`(${x}, ${y}) → ${dirH}, ${dirV} → <strong>(${x+dx}, ${y+dy})</strong>`};
+}
+
+/* =============================================================
+   QUESTION POOLS
+   ============================================================= */
+const POOLS = {
+  'mixed':        [qNameShape,qCountSides,qCountVertices,qParallelPairs,qIsRegular,qIsQuad,qSymCount,qSymDraw,qPerimRect,qPerimSquare,qAreaRect,qAreaCount,qTransDescribe,qTransCoords],
+  'shapes':       [qNameShape,qCountSides,qCountVertices,qParallelPairs,qIsRegular,qIsPolygon,qIsQuad],
+  'perim-area':   [qPerimRect,qPerimSquare,qAreaRect,qAreaCount],
+  'symmetry':     [qSymCount,qSymDraw],
+  'translations': [qTransDescribe,qTransCoords],
+};
+
+function generateQuestions(mode,n){
+  const pool=POOLS[mode]||POOLS.mixed;
+  return Array.from({length:n},()=>pick(pool)());
+}
+
+/* =============================================================
+   GAME STATE
+   ============================================================= */
+let S={
+  screen:'start',mode:'mixed',numQ:10,
+  questions:[],currentQ:0,answers:[],
+  showFB:false,lastAnswer:null,
+  drawLine:null, // {ax,ay,bx,by}
+};
+
+// Canvas refs (module-level, survive render)
+let _canvas=null, _ctx=null;
+
+/* =============================================================
+   RENDER
+   ============================================================= */
+function render(){
+  document.getElementById('app').innerHTML=
+    S.screen==='start'   ? renderStart():
+    S.screen==='playing' ? renderPlaying():
+                           renderEnd();
+  // Re-init canvas after DOM is ready
+  if(S.screen==='playing' && S.questions[S.currentQ]?.type==='symDraw'){
+    setTimeout(initDrawCanvas,20);
+  }
+}
+
+/* ---- Start ---- */
+function renderStart(){
+  const modes=[
+    ['mixed',        '🎲 Mixed (all activities)'],
+    ['shapes',       '🔷 Shapes & Properties'],
+    ['perim-area',   '📐 Perimeter & Area'],
+    ['symmetry',     '🔁 Lines of Symmetry'],
+    ['translations', '➡️ Translations'],
+  ];
+  return`<div class="card">
+  <div class="logo">📐</div>
+  <h1>Year 4 Geometry<br>Game</h1>
+  <p class="subtitle">Shapes, perimeter, area, symmetry and translations — let's go!</p>
+  <div class="section-label">Choose your activity</div>
+  <div class="mode-grid">
+    ${modes.map(([id,lbl])=>`<button class="mode-btn${S.mode===id?' active':''}" onclick="setMode('${id}')">${lbl}</button>`).join('')}
+  </div>
+  <div class="section-label">Number of questions</div>
+  <div class="num-grid">
+    ${[5,10,15].map(n=>`<button class="num-btn${S.numQ===n?' active':''}" onclick="setNumQ(${n})">${n}</button>`).join('')}
+  </div>
+  <button class="go-btn" onclick="startGame()">Let's go! →</button>
+</div>`;
+}
+
+/* ---- Playing wrapper ---- */
+function renderPlaying(){
+  const pct=Math.round(S.currentQ/S.questions.length*100);
+  const right=S.answers.filter(a=>a.correct).length;
+  return`<div class="card">
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span>Question ${S.currentQ+1} of ${S.questions.length}</span>
+      <span>${right} correct so far ✓</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>
+  ${renderQ(S.questions[S.currentQ])}
+</div>`;
+}
+
+function renderQ(q){
+  if(q.type==='shapeQ')   return renderShapeQ(q);
+  if(q.type==='diagramQ') return renderDiagramQ(q);
+  if(q.type==='transQ')   return renderTransQ(q);
+  if(q.type==='symDraw')  return renderSymDraw(q);
+  return '';
+}
+
+/* ---- Generic 4-option MC with shape SVG ---- */
+function renderShapeQ(q){
+  const fb=S.showFB, ua=S.lastAnswer;
+  const isTF=q.options.length===2;
+  const cls=opt=>{
+    if(!fb) return '';
+    const match=String(opt)===String(q.answer);
+    const chosen=String(opt)===String(ua);
+    if(match) return ' correct';
+    if(chosen&&!match) return ' wrong';
+    return '';
+  };
+  const isTextOpt=typeof q.options[0]==='string'&&q.options[0].length>3;
+  const gridClass=isTF?'tf-grid':'mc-grid';
+  const btnClass=isTextOpt?'mc-btn text':'mc-btn';
+  return`
+  <p class="q-instr">${q.instruction}</p>
+  <div class="shape-display">${shapeSVG(q.shape)}</div>
+  <div class="${gridClass}">
+    ${q.options.map(opt=>`
+      <button class="${btnClass}${cls(opt)}" ${fb?'disabled':''} onclick="doAnswer(${JSON.stringify(String(opt))})">
+        ${opt}
+      </button>`).join('')}
+  </div>
+  ${fb?renderFB(String(ua)===String(q.answer),q):''}
+  ${fb?nextBtn():''}`;
+}
+
+/* ---- Perimeter / Area MC with diagram ---- */
+function renderDiagramQ(q){
+  const fb=S.showFB, ua=S.lastAnswer;
+  const cls=opt=>{
+    if(!fb) return '';
+    if(String(opt)===String(q.answer)) return ' correct';
+    if(String(opt)===String(ua)&&String(opt)!==String(q.answer)) return ' wrong';
+    return '';
+  };
+  return`
+  <p class="q-instr">${q.instruction}</p>
+  <div class="diagram-display">${q.svg}</div>
+  <div class="mc-grid">
+    ${q.options.map(opt=>`
+      <button class="mc-btn" ${fb?'disabled':''} onclick="doAnswer(${JSON.stringify(String(opt))})">
+        ${opt} ${q.unit}
+      </button>`).join('')}
+  </div>
+  ${fb?renderFB(String(ua)===String(q.answer),q):''}
+  ${fb?nextBtn():''}`;
+}
+
+/* ---- Translation MC with grid ---- */
+function renderTransQ(q){
+  const fb=S.showFB, ua=S.lastAnswer;
+  const cls=opt=>{
+    if(!fb) return '';
+    if(opt===q.answer) return ' correct';
+    if(opt===ua&&opt!==q.answer) return ' wrong';
+    return '';
+  };
+  const isText=typeof q.options[0]==='string'&&q.options[0].length>5;
+  return`
+  <p class="q-instr">${q.instruction}</p>
+  <div class="diagram-display">${q.svg}</div>
+  <div class="mc-grid">
+    ${q.options.map(opt=>`
+      <button class="mc-btn${isText?' text':''}${cls(opt)}" ${fb?'disabled':''} onclick="doAnswer(${JSON.stringify(String(opt))})">
+        ${opt}
+      </button>`).join('')}
+  </div>
+  ${fb?renderFB(ua===q.answer,q):''}
+  ${fb?nextBtn():''}`;
+}
+
+/* ---- Symmetry Draw ---- */
+function renderSymDraw(q){
+  const fb=S.showFB;
+  return`
+  <p class="q-instr">${q.instruction}</p>
+  <p class="draw-hint">${fb?'':'✏️ '+q.hint}</p>
+  <div class="canvas-wrap">
+    <div class="canvas-container">
+      <canvas id="symCanvas" width="260" height="260"></canvas>
+    </div>
+  </div>
+  ${fb?renderFB(S.answers[S.answers.length-1]?.correct,q):''}
+  ${fb?nextBtn():''}`;
+}
+
+/* ---- Feedback ---- */
+function renderFB(correct,q){
+  if(correct) return`<div class="feedback ok"><span class="icon">✅</span><div>Correct! Well done!</div></div>`;
+  return`<div class="feedback no"><span class="icon">❌</span><div>Not quite this time.<div class="sol">${q.explanation}</div></div></div>`;
+}
+
+function nextBtn(){
+  const last=S.currentQ+1>=S.questions.length;
+  return`<button class="btn-next" onclick="nextQ()">${last?'See my results →':'Next question →'}</button>`;
+}
+
+/* ---- End Screen ---- */
+function renderEnd(){
+  const total=S.questions.length;
+  const correct=S.answers.filter(a=>a.correct).length;
+  const pct=Math.round(correct/total*100);
+  const stars=pct>=90?'⭐⭐⭐':pct>=70?'⭐⭐':pct>=50?'⭐':'';
+  const msgs=['Keep practising — you can do it! 💡','Good try — one more go? 🔁','Great effort! Almost there! 💪','Geometry superstar! 🎉'];
+  const mi=pct>=90?3:pct>=70?2:pct>=50?1:0;
+  const wrongs=S.answers.filter(a=>!a.correct);
+  return`<div class="card">
+  <h2 style="text-align:center;margin-bottom:4px">Game Over!</h2>
+  <div class="score-wrap">
+    <div class="score-ring">
+      <div class="big-num">${correct}/${total}</div>
+      <div class="lbl">correct</div>
+    </div>
+    ${stars?`<div class="stars">${stars}</div>`:''}
+    <p class="score-msg">${msgs[mi]}</p>
+  </div>
+  ${wrongs.length===0
+    ?`<div class="feedback ok" style="justify-content:center"><span class="icon">🏆</span><div>Perfect score!</div></div>`
+    :`<div class="review-hd">Let's look at what to practise:</div>
+      ${S.answers.map((ans,i)=>ans.correct?'':reviewItem(ans,i)).join('')}`}
+  <button class="btn-play" onclick="playAgain()">Play again 🔄</button>
+  <button class="btn-home" onclick="goHome()">Change activity ⚙️</button>
+</div>`;
+}
+
+function reviewItem(ans,i){
+  const q=ans.question;
+  const typeLabel={shapeQ:'Shape',diagramQ:'Perimeter / Area',transQ:'Translation',symDraw:'Symmetry Draw'}[q.type]||q.type;
+  let body='';
+  if(q.type==='shapeQ'){
+    body=`${shapeSVG(q.shape,'#f5f5f5',100)}<br>You chose <span class="r-bad">${ans.userAnswer}</span> → correct: <span class="r-right">${q.answer}</span>`;
+  } else if(q.type==='diagramQ'){
+    body=`You chose <span class="r-bad">${ans.userAnswer} ${q.unit}</span> → correct: <span class="r-right">${q.answer} ${q.unit}</span><br><small>${q.explanation.replace(/<[^>]+>/g,'')}</small>`;
+  } else if(q.type==='transQ'){
+    body=`You chose <span class="r-bad">${ans.userAnswer}</span> → correct: <span class="r-right">${q.answer}</span>`;
+  } else if(q.type==='symDraw'){
+    body=`${shapeSVG(q.shape,'#f5f5f5',100)}<br>${q.explanation}`;
+  }
+  return`<div class="review-item r-wrong">
+    <div class="review-q">Q${i+1} · ${typeLabel}</div>
+    <div class="review-body">${body}</div>
+  </div>`;
+}
+
+/* =============================================================
+   CANVAS DRAW — SYMMETRY ACTIVITY
+   ============================================================= */
+const CANVAS_SIZE=260;
+const CANVAS_CX=130, CANVAS_CY=130;
+const CANVAS_SCALE=1.35;
+const ANGLE_TOL=20;   // degrees
+const DIST_TOL=55;    // pixels from centroid
+
+function initDrawCanvas(){
+  const canvas=document.getElementById('symCanvas');
+  if(!canvas) return;
+  _canvas=canvas; _ctx=canvas.getContext('2d');
+
+  drawShapeOnCanvas();
+
+  if(S.showFB){
+    // Show result: user line + correct lines
+    const correct=S.answers[S.answers.length-1]?.correct;
+    if(S.drawLine) drawUserLine(S.drawLine,correct);
+    drawCorrectLines(S.questions[S.currentQ]);
+    return;
+  }
+
+  // Live drawing state
+  let isDrawing=false, drawStart=null;
+
+  function getPos(e){
+    const r=canvas.getBoundingClientRect();
+    return{x:(e.clientX-r.left)*canvas.width/r.width,
+           y:(e.clientY-r.top )*canvas.height/r.height};
+  }
+
+  function startDraw(e){
+    e.preventDefault();
+    const src=e.touches?e.touches[0]:e;
+    isDrawing=true; drawStart=getPos(src); S.drawLine=null;
+  }
+  function moveDraw(e){
+    e.preventDefault();
+    if(!isDrawing) return;
+    const src=e.touches?e.touches[0]:e;
+    const p=getPos(src);
+    drawShapeOnCanvas();
+    drawTempLine(drawStart,p);
+  }
+  function endDraw(e){
+    e.preventDefault();
+    if(!isDrawing) return;
+    isDrawing=false;
+    const src=e.changedTouches?e.changedTouches[0]:e;
+    const p=getPos(src);
+    const len=Math.hypot(p.x-drawStart.x,p.y-drawStart.y);
+    if(len<30){ drawShapeOnCanvas(); return; } // too short
+    S.drawLine={ax:drawStart.x,ay:drawStart.y,bx:p.x,by:p.y};
+    const q=S.questions[S.currentQ];
+    const ok=checkSymLine(S.drawLine,q.answer);
+    S.showFB=true;
+    S.answers.push({correct:ok,userAnswer:S.drawLine,question:q});
+    render(); // re-renders; initDrawCanvas will draw the result
+  }
+
+  canvas.addEventListener('mousedown',startDraw);
+  canvas.addEventListener('mousemove',moveDraw);
+  canvas.addEventListener('mouseup',endDraw);
+  canvas.addEventListener('touchstart',startDraw,{passive:false});
+  canvas.addEventListener('touchmove',moveDraw,{passive:false});
+  canvas.addEventListener('touchend',endDraw,{passive:false});
+}
+
+function checkSymLine(line,validAngles){
+  const {ax,ay,bx,by}=line;
+  const dist=ptLineDist(CANVAS_CX,CANVAS_CY,ax,ay,bx,by);
+  if(dist>DIST_TOL) return false;
+  const drawn=normAngle(Math.atan2(by-ay,bx-ax)*180/Math.PI);
+  for(const va of validAngles){
+    const diff=Math.abs(drawn-normAngle(va));
+    if(Math.min(diff,180-diff)<=ANGLE_TOL) return true;
+  }
+  return false;
+}
+
+function drawShapeOnCanvas(){
+  const c=_ctx, size=CANVAS_SIZE, cx=CANVAS_CX, cy=CANVAS_CY;
+  c.clearRect(0,0,size,size);
+  // Light grid
+  c.strokeStyle='#ececec'; c.lineWidth=1;
+  for(let i=0;i<size;i+=20){
+    c.beginPath();c.moveTo(i,0);c.lineTo(i,size);c.stroke();
+    c.beginPath();c.moveTo(0,i);c.lineTo(size,i);c.stroke();
+  }
+  // Shape
+  const sh=S.questions[S.currentQ].shape;
+  c.beginPath();
+  sh.pts.forEach(([x,y],i)=>{
+    const sx=cx+x*CANVAS_SCALE, sy=cy+y*CANVAS_SCALE;
+    i===0?c.moveTo(sx,sy):c.lineTo(sx,sy);
+  });
+  c.closePath();
+  c.fillStyle='#d4eaf7'; c.fill();
+  c.strokeStyle='#12384f'; c.lineWidth=2.5; c.stroke();
+}
+
+function drawTempLine(a,b){
+  const c=_ctx;
+  c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y);
+  c.strokeStyle='rgba(14,122,106,0.7)'; c.lineWidth=2.5;
+  c.setLineDash([7,4]); c.stroke(); c.setLineDash([]);
+}
+
+function drawUserLine(line,correct){
+  const c=_ctx;
+  const col=correct?'#27ae60':'#e74c3c';
+  c.beginPath(); c.moveTo(line.ax,line.ay); c.lineTo(line.bx,line.by);
+  c.strokeStyle=col; c.lineWidth=3; c.setLineDash([]); c.stroke();
+  // Endpoint dots
+  [line.ax,line.bx].forEach((x,i)=>{
+    const y=[line.ay,line.by][i];
+    c.beginPath(); c.arc(x,y,5,0,Math.PI*2);
+    c.fillStyle=col; c.fill();
+  });
+}
+
+function drawCorrectLines(q){
+  const c=_ctx;
+  const ext=CANVAS_SIZE*0.65;
+  for(const ang of q.answer){
+    const rad=ang*Math.PI/180;
+    const x1=CANVAS_CX-Math.cos(rad)*ext, y1=CANVAS_CY-Math.sin(rad)*ext;
+    const x2=CANVAS_CX+Math.cos(rad)*ext, y2=CANVAS_CY+Math.sin(rad)*ext;
+    c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2);
+    c.strokeStyle='rgba(39,174,96,0.75)'; c.lineWidth=2;
+    c.setLineDash([9,5]); c.stroke(); c.setLineDash([]);
+  }
+}
+
+/* =============================================================
+   ACTIONS
+   ============================================================= */
+function setMode(m){ S.mode=m; render(); }
+function setNumQ(n){ S.numQ=n; render(); }
+
+function startGame(){
+  S.screen='playing';
+  S.questions=generateQuestions(S.mode,S.numQ);
+  S.currentQ=0; S.answers=[]; S.showFB=false;
+  S.lastAnswer=null; S.drawLine=null;
+  render();
+}
+
+function doAnswer(val){
+  if(S.showFB) return;
+  const q=S.questions[S.currentQ];
+  S.lastAnswer=val;
+  S.showFB=true;
+  S.answers.push({correct:String(val)===String(q.answer),userAnswer:val,question:q});
+  render();
+}
+
+function nextQ(){
+  S.currentQ++;
+  S.showFB=false; S.lastAnswer=null; S.drawLine=null;
+  if(S.currentQ>=S.questions.length) S.screen='end';
+  render();
+}
+
+function playAgain(){ startGame(); }
+function goHome(){ S.screen='start'; render(); }
+
+/* =============================================================
+   INIT
+   ============================================================= */
+render();
+</script>
+</body>
+</html>
