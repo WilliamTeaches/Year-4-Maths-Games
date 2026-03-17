@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fractions &amp; Decimals Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --teal:#0e7a6a;
+  --teal-dk:#0a5c50;
+  --teal-lt:#e6f5f3;
+  --amber:#f4a522;
+  --amber-dk:#d4881a;
+  --cream:#fffdf7;
+  --green:#27ae60;
+  --green-lt:#e8f8ee;
+  --red:#e74c3c;
+  --red-lt:#fdf0ee;
+  --navy:#12384f;
+  --muted:#888;
+  --border:#e8e8e8;
+}
+
+body{
+  font-family:'Nunito','Arial Rounded MT Bold',Arial,sans-serif;
+  background:var(--cream);
+  min-height:100vh;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:24px 16px;
+  background-image:
+    radial-gradient(circle at 12% 20%,rgba(14,122,106,.07) 0%,transparent 55%),
+    radial-gradient(circle at 88% 78%,rgba(244,165,34,.07) 0%,transparent 55%);
+}
+
+#app{width:100%;max-width:660px;}
+
+/* ---- Card ---- */
+.card{
+  background:#fff;
+  border-radius:24px;
+  padding:36px 36px 32px;
+  box-shadow:0 8px 48px rgba(0,0,0,.09),0 2px 8px rgba(0,0,0,.05);
+  animation:fadeUp .3s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---- Start screen ---- */
+.logo{font-size:3.2rem;text-align:center;margin-bottom:10px;}
+h1{
+  font-family:'Fredoka One',cursive;
+  font-size:2.3rem;
+  color:var(--navy);
+  line-height:1.15;
+  text-align:center;
+  margin-bottom:6px;
+}
+.subtitle{text-align:center;color:var(--muted);font-size:.95rem;margin-bottom:26px;}
+.section-label{
+  font-size:.72rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.12em;
+  color:#bbb;margin:18px 0 8px;
+}
+
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mode-btn{
+  padding:11px 13px;border:2.5px solid var(--border);
+  border-radius:13px;background:#fff;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.85rem;
+  color:#555;transition:all .15s;text-align:left;line-height:1.3;
+}
+.mode-btn:hover{border-color:var(--teal);color:var(--teal);}
+.mode-btn.active{border-color:var(--teal);background:var(--teal);color:#fff;}
+.mode-btn:first-child{grid-column:1/-1;}
+
+.num-grid{display:flex;gap:10px;}
+.num-btn{
+  flex:1;padding:11px;border:2.5px solid var(--border);
+  border-radius:13px;background:#fff;cursor:pointer;
+  font-family:'Fredoka One',cursive;font-size:1.2rem;color:#555;transition:all .15s;
+}
+.num-btn:hover{border-color:var(--teal);color:var(--teal);}
+.num-btn.active{border-color:var(--teal);background:var(--teal);color:#fff;}
+
+.go-btn{
+  display:block;width:100%;margin-top:26px;padding:16px;
+  background:var(--amber);color:#fff;border:none;border-radius:16px;
+  font-family:'Fredoka One',cursive;font-size:1.4rem;cursor:pointer;
+  box-shadow:0 4px 18px rgba(244,165,34,.35);transition:all .15s;
+}
+.go-btn:hover{background:var(--amber-dk);transform:translateY(-2px);}
+
+/* ---- Progress ---- */
+.progress-wrap{margin-bottom:26px;}
+.progress-meta{
+  display:flex;justify-content:space-between;
+  font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:7px;
+}
+.progress-bar{height:8px;background:#f0f0f0;border-radius:99px;overflow:hidden;}
+.progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--teal),#1fcab3);
+  border-radius:99px;transition:width .45s ease;
+}
+
+/* ---- Question instruction ---- */
+h2{font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--navy);}
+.q-instr{
+  font-size:.92rem;font-weight:700;color:#666;
+  text-align:center;margin-bottom:18px;
+}
+.q-hint{
+  font-size:.8rem;color:var(--muted);text-align:center;
+  font-style:italic;margin-bottom:4px;
+}
+
+/* ---- Fraction display ---- */
+.frac{
+  display:inline-flex;flex-direction:column;align-items:center;
+  font-family:'Fredoka One',cursive;vertical-align:middle;line-height:1.1;
+}
+.frac .num{border-bottom:3px solid currentColor;padding:1px 5px;min-width:1em;text-align:center;}
+.frac .den{padding:1px 5px;text-align:center;}
+
+/* ---- Compare layout ---- */
+.compare-layout{
+  display:flex;align-items:center;justify-content:center;
+  gap:18px;margin:26px 0;
+}
+.cval{
+  font-family:'Fredoka One',cursive;font-size:2.5rem;
+  color:var(--navy);min-width:80px;text-align:center;
+}
+.cval .frac .num,.cval .frac .den{font-size:2rem;}
+.cval .frac{font-size:2rem;}
+
+.sym-btns{display:flex;flex-direction:column;gap:8px;}
+.sym-btn{
+  width:58px;height:50px;border:2.5px solid var(--border);
+  border-radius:12px;background:#fff;cursor:pointer;
+  font-family:'Fredoka One',cursive;font-size:1.5rem;color:#555;
+  transition:all .15s;display:flex;align-items:center;justify-content:center;
+}
+.sym-btn:hover:not(:disabled){border-color:var(--teal);color:var(--teal);background:var(--teal-lt);}
+.sym-btn.correct{border-color:var(--green);background:var(--green);color:#fff;}
+.sym-btn.wrong  {border-color:var(--red);  background:var(--red);  color:#fff;}
+.sym-btn.reveal {border-color:var(--green);background:var(--green-lt);color:var(--green);}
+
+/* ---- Convert: big display ---- */
+.q-display{text-align:center;margin:22px 0 14px;}
+.q-display .big{
+  font-family:'Fredoka One',cursive;font-size:3rem;color:var(--navy);
+  display:inline-block;
+}
+.q-display .big .frac .num,.q-display .big .frac .den{font-size:2.4rem;}
+.q-display .tag{font-size:.8rem;color:var(--muted);margin-top:4px;}
+
+/* ---- MC options ---- */
+.mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;}
+.mc-btn{
+  padding:18px 10px;border:2.5px solid var(--border);
+  border-radius:14px;background:#fff;cursor:pointer;
+  font-family:'Fredoka One',cursive;font-size:1.7rem;
+  color:var(--navy);transition:all .15s;
+  display:flex;align-items:center;justify-content:center;min-height:84px;
+}
+.mc-btn:hover:not(:disabled){border-color:var(--teal);background:var(--teal-lt);}
+.mc-btn.correct{border-color:var(--green);background:var(--green);color:#fff;}
+.mc-btn.correct .frac{color:#fff;}
+.mc-btn.wrong  {border-color:var(--red);  background:var(--red-lt);}
+.mc-btn.reveal {border-color:var(--green);background:var(--green-lt);}
+.mc-btn.reveal .frac{color:var(--green);}
+
+/* ---- Order ---- */
+.order-dir{
+  display:flex;align-items:center;gap:8px;
+  background:#f8f8f8;border-radius:12px;
+  padding:10px 14px;margin-bottom:16px;
+  font-size:.82rem;font-weight:700;color:var(--muted);
+}
+.order-items{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.order-tile{
+  padding:20px 10px;border:2.5px solid var(--border);
+  border-radius:16px;background:#fff;cursor:pointer;
+  font-family:'Fredoka One',cursive;font-size:1.9rem;
+  color:var(--navy);text-align:center;
+  display:flex;align-items:center;justify-content:center;min-height:96px;
+  position:relative;transition:all .15s;
+}
+.order-tile:hover:not(.selected):not(.done){border-color:var(--teal);background:var(--teal-lt);}
+.order-tile.selected{border-color:var(--teal);background:var(--teal);color:#fff;}
+.order-tile.selected .frac{color:#fff;}
+.order-tile.correct{border-color:var(--green);background:var(--green);color:#fff;}
+.order-tile.correct .frac{color:#fff;}
+.order-tile.wrong  {border-color:var(--red);  background:var(--red-lt);}
+.order-tile.done   {cursor:default;}
+.badge{
+  position:absolute;top:-10px;right:-10px;width:26px;height:26px;
+  background:var(--amber);color:#fff;border-radius:50%;
+  font-size:.78rem;display:flex;align-items:center;justify-content:center;
+  font-family:'Fredoka One',cursive;font-weight:700;
+}
+.order-tip{font-size:.8rem;color:var(--muted);text-align:center;margin-bottom:8px;}
+
+/* ---- Buttons ---- */
+.btn-check,.btn-next,.btn-reset{
+  display:block;width:100%;margin-top:10px;padding:14px;
+  border:none;border-radius:14px;font-family:'Fredoka One',cursive;
+  font-size:1.15rem;cursor:pointer;transition:all .15s;
+}
+.btn-check{background:var(--teal);color:#fff;}
+.btn-check:hover:not(:disabled){background:var(--teal-dk);}
+.btn-check:disabled{background:#ccc;cursor:default;}
+.btn-next{background:var(--amber);color:#fff;box-shadow:0 4px 16px rgba(244,165,34,.3);}
+.btn-next:hover{background:var(--amber-dk);}
+.btn-reset{
+  background:none;border:2px solid var(--border);color:var(--muted);
+  font-size:.95rem;margin-top:8px;
+}
+.btn-reset:hover{border-color:#aaa;color:#555;}
+
+/* ---- Feedback banner ---- */
+.feedback{
+  margin-top:14px;padding:13px 16px;border-radius:13px;
+  font-size:.9rem;font-weight:700;display:flex;align-items:flex-start;gap:10px;
+}
+.feedback.ok{background:var(--green-lt);color:#1a7a40;}
+.feedback.no{background:var(--red-lt);color:#c0392b;}
+.feedback .icon{font-size:1.2rem;flex-shrink:0;margin-top:1px;}
+.feedback .body{}
+.feedback .sol{margin-top:5px;font-size:.88rem;opacity:.9;}
+
+/* ---- End screen ---- */
+.score-wrap{text-align:center;margin:16px 0 22px;}
+.score-ring{
+  width:130px;height:130px;border-radius:50%;
+  background:linear-gradient(135deg,var(--teal),#1fcab3);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  margin:0 auto 14px;color:#fff;
+  box-shadow:0 8px 28px rgba(14,122,106,.28);
+}
+.score-ring .big-num{font-family:'Fredoka One',cursive;font-size:2.7rem;line-height:1.05;}
+.score-ring .lbl{font-size:.7rem;opacity:.85;}
+.stars{font-size:2rem;margin-bottom:6px;}
+.score-msg{font-weight:700;color:#555;font-size:.95rem;}
+
+/* ---- Review ---- */
+.review-hd{
+  font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--navy);
+  margin:22px 0 10px;border-top:2px solid var(--border);padding-top:20px;
+}
+.review-item{
+  border:2px solid var(--border);border-radius:14px;
+  padding:13px 14px;margin-bottom:9px;
+}
+.review-item.r-wrong{border-color:#fde8e8;background:#fffbfb;}
+.review-item.r-ok{border-color:#e3f8eb;background:#fbfffd;}
+.review-q{font-size:.75rem;font-weight:800;color:var(--muted);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase;}
+.review-body{font-size:.92rem;color:#333;line-height:1.55;}
+.review-body .frac .num,.review-body .frac .den{font-size:inherit;}
+.r-right{color:var(--green);font-weight:800;}
+.r-bad  {color:var(--red);  font-weight:800;}
+
+/* ---- Play again ---- */
+.btn-play{
+  display:block;width:100%;margin-top:20px;padding:16px;
+  background:var(--amber);color:#fff;border:none;border-radius:16px;
+  font-family:'Fredoka One',cursive;font-size:1.35rem;cursor:pointer;
+  box-shadow:0 4px 18px rgba(244,165,34,.35);transition:all .15s;
+}
+.btn-play:hover{background:var(--amber-dk);transform:translateY(-2px);}
+.btn-home{
+  display:block;width:100%;margin-top:10px;padding:12px;
+  border:2px solid var(--border);border-radius:14px;background:none;cursor:pointer;
+  font-family:'Fredoka One',cursive;font-size:1rem;color:var(--muted);transition:all .15s;
+}
+.btn-home:hover{border-color:#aaa;color:#444;}
+
+/* ---- Responsive ---- */
+@media(max-width:460px){
+  .card{padding:24px 18px 22px;}
+  h1{font-size:1.85rem;}
+  .cval{font-size:2rem;min-width:64px;}
+  .cval .frac .num,.cval .frac .den{font-size:1.6rem;}
+  .mc-btn{font-size:1.4rem;min-height:70px;}
+  .order-tile{font-size:1.5rem;min-height:78px;}
+  .q-display .big{font-size:2.4rem;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+/* =========================================================
+   DATA
+   ========================================================= */
+
+// All known fractions with their decimal values
+const FRACS = [
+  {n:1,d:2, v:0.5},
+  {n:1,d:4, v:0.25},
+  {n:3,d:4, v:0.75},
+  {n:1,d:5, v:0.2},
+  {n:2,d:5, v:0.4},
+  {n:3,d:5, v:0.6},
+  {n:4,d:5, v:0.8},
+  {n:1,d:10,v:0.1},
+  {n:2,d:10,v:0.2},
+  {n:3,d:10,v:0.3},
+  {n:4,d:10,v:0.4},
+  {n:6,d:10,v:0.6},
+  {n:7,d:10,v:0.7},
+  {n:9,d:10,v:0.9},
+  {n:5, d:100,v:0.05},
+  {n:10,d:100,v:0.1},
+  {n:25,d:100,v:0.25},
+  {n:50,d:100,v:0.5},
+  {n:75,d:100,v:0.75},
+];
+
+// Decimals used for compare-decimals questions
+const COMP_DECS = [
+  0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,
+  0.01,0.02,0.05,0.25,0.43,0.81,0.03,0.42,
+  1.5,2.3,4.73,7.01,10.13,10.2,
+];
+
+// Tricky equal pairs for compare-decimals
+const EQUAL_PAIRS = [
+  ['0.20','0.2',0.2],
+  ['0.50','0.5',0.5],
+  ['0.10','0.1',0.1],
+  ['0.30','0.3',0.3],
+];
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function pick(arr)      { return arr[Math.floor(Math.random()*arr.length)]; }
+function shuffle(arr)   { return [...arr].sort(()=>Math.random()-.5); }
+function pickN(arr,n)   { return shuffle([...arr]).slice(0,n); }
+function dv(v)          { return parseFloat(v.toFixed(6)).toString(); } // clean decimal string
+
+function frac(n,d){
+  return `<span class="frac"><span class="num">${n}</span><span class="den">${d}</span></span>`;
+}
+
+function cmp(a,b){
+  if(Math.abs(a-b)<0.00001) return '=';
+  return a<b ? '<' : '>';
+}
+
+function symHTML(s){
+  if(s==='<') return '&lt;';
+  if(s==='>') return '&gt;';
+  return '=';
+}
+
+/* =========================================================
+   QUESTION GENERATORS
+   ========================================================= */
+
+function qCompareDecimals(){
+  // 20% chance of an equal pair to test understanding of trailing zeros
+  if(Math.random()<0.2){
+    const [la,lb,val] = pick(EQUAL_PAIRS);
+    return {
+      type:'compare', sub:'decimals',
+      instruction:'Write the correct symbol',
+      leftHTML:la, leftVal:val,
+      rightHTML:lb, rightVal:val,
+      answer:'=',
+      explanation:`${la} and ${lb} have the same value — use <strong>=</strong>`,
+    };
+  }
+  let a=pick(COMP_DECS);
+  let b=pick(COMP_DECS.filter(x=>Math.abs(x-a)>0.001));
+  return {
+    type:'compare', sub:'decimals',
+    instruction:'Write the correct symbol',
+    leftHTML:dv(a), leftVal:a,
+    rightHTML:dv(b), rightVal:b,
+    answer:cmp(a,b),
+    explanation:`${dv(a)} ${cmp(a,b)} ${dv(b)}`,
+  };
+}
+
+function qCompareSameDenom(){
+  const d = pick([4,5,6,7,8,9,10]);
+  const [n1,n2] = pickN(Array.from({length:d-1},(_,i)=>i+1),2);
+  return {
+    type:'compare', sub:'same-denom',
+    instruction:'Write the correct symbol',
+    hint:'Same denominator — compare the numerators',
+    leftHTML:frac(n1,d), leftVal:n1/d,
+    rightHTML:frac(n2,d), rightVal:n2/d,
+    answer:cmp(n1/d,n2/d),
+    explanation:`${frac(n1,d)} ${cmp(n1/d,n2/d)} ${frac(n2,d)}`,
+  };
+}
+
+function qCompareSameNum(){
+  const n = pick([1,2,3,4]);
+  const pool = [3,4,5,6,7,8,9,10].filter(d=>d>n);
+  const [d1,d2] = pickN(pool,2);
+  return {
+    type:'compare', sub:'same-num',
+    instruction:'Write the correct symbol',
+    hint:'Same numerator — a bigger denominator means a smaller fraction!',
+    leftHTML:frac(n,d1), leftVal:n/d1,
+    rightHTML:frac(n,d2), rightVal:n/d2,
+    answer:cmp(n/d1,n/d2),
+    explanation:`${frac(n,d1)} ${cmp(n/d1,n/d2)} ${frac(n,d2)}`,
+  };
+}
+
+function qCompareFracs(){
+  const pool = FRACS.filter(f=>f.d<=10);
+  let [f1,f2] = pickN(pool,2);
+  // Avoid accidental equals (e.g. 2/10 vs 1/5)
+  if(Math.abs(f1.v-f2.v)<0.001) return qCompareFracs();
+  return {
+    type:'compare', sub:'diff',
+    instruction:'Write the correct symbol',
+    leftHTML:frac(f1.n,f1.d), leftVal:f1.v,
+    rightHTML:frac(f2.n,f2.d), rightVal:f2.v,
+    answer:cmp(f1.v,f2.v),
+    explanation:`${frac(f1.n,f1.d)} = ${dv(f1.v)}, &nbsp; ${frac(f2.n,f2.d)} = ${dv(f2.v)}`,
+  };
+}
+
+function qConvertF2D(){
+  const f = pick(FRACS);
+  const correct = dv(f.v);
+  const distractors = shuffle(FRACS.filter(x=>Math.abs(x.v-f.v)>0.001)).slice(0,3).map(x=>dv(x.v));
+  // Guard: ensure 3 unique distractors
+  const unique = [...new Set(distractors)].slice(0,3);
+  while(unique.length<3) unique.push(dv(pick(FRACS.filter(x=>Math.abs(x.v-f.v)>0.001)).v));
+  return {
+    type:'convert-f2d',
+    instruction:'What is the decimal equivalent?',
+    questionHTML: frac(f.n,f.d),
+    answer: correct,
+    options: shuffle([correct,...unique.slice(0,3)]),
+    explanation: `${frac(f.n,f.d)} = <strong>${correct}</strong>`,
+  };
+}
+
+function qConvertD2F(){
+  const f = pick(FRACS.filter(f=>f.d<=10));
+  const correct = {html:frac(f.n,f.d), key:`${f.n}/${f.d}`};
+  const dists = shuffle(FRACS.filter(x=>Math.abs(x.v-f.v)>0.001&&x.d<=10)).slice(0,3)
+    .map(x=>({html:frac(x.n,x.d), key:`${x.n}/${x.d}`}));
+  return {
+    type:'convert-d2f',
+    instruction:'What is the equivalent fraction?',
+    questionHTML: dv(f.v),
+    answer: correct.key,
+    options: shuffle([correct,...dists.slice(0,3)]),
+    explanation: `${dv(f.v)} = ${frac(f.n,f.d)}`,
+  };
+}
+
+function qOrder(){
+  const dir = Math.random()<0.5 ? 'asc' : 'desc';
+  let four = pickN(FRACS.filter(f=>f.d<=10),4);
+  // Ensure all values distinct
+  if(new Set(four.map(f=>f.v)).size < 4) return qOrder();
+  const sorted = [...four].sort((a,b)=>a.v-b.v);
+  const answer = dir==='asc' ? sorted : [...sorted].reverse();
+  return {
+    type:'order',
+    direction: dir,
+    instruction: dir==='asc'
+      ? 'Click from <strong>smallest</strong> to <strong>largest</strong>'
+      : 'Click from <strong>largest</strong> to <strong>smallest</strong>',
+    items: shuffle(four).map(f=>({html:frac(f.n,f.d), val:f.v, key:`${f.n}/${f.d}`})),
+    answer: answer.map(f=>`${f.n}/${f.d}`),
+    explanation: answer.map(f=>frac(f.n,f.d)).join(' &rarr; '),
+  };
+}
+
+/* =========================================================
+   QUESTION SET
+   ========================================================= */
+
+const POOLS = {
+  'mixed':              [qCompareDecimals, qCompareSameDenom, qCompareSameNum, qConvertF2D, qConvertD2F, qOrder],
+  'compare-decimals':   [qCompareDecimals],
+  'compare-fractions':  [qCompareSameDenom, qCompareSameNum, qCompareFracs],
+  'convert':            [qConvertF2D, qConvertD2F],
+  'order':              [qOrder],
+};
+
+function generateQuestions(mode, count){
+  const pool = POOLS[mode] || POOLS.mixed;
+  return Array.from({length:count}, ()=>pick(pool)());
+}
+
+/* =========================================================
+   GAME STATE
+   ========================================================= */
+
+let S = {
+  screen:    'start',
+  mode:      'mixed',
+  numQ:      10,
+  questions: [],
+  currentQ:  0,
+  answers:   [],       // {correct, userAnswer, question}
+  orderSel:  [],       // keys selected so far for order questions
+  showFB:    false,    // show feedback after compare/convert answer
+  checkedOrd:false,    // show feedback after order check
+  lastAnswer:null,
+};
+
+/* =========================================================
+   RENDER ENGINE
+   ========================================================= */
+
+function render(){
+  document.getElementById('app').innerHTML =
+    S.screen==='start'   ? renderStart()   :
+    S.screen==='playing' ? renderPlaying() :
+                           renderEnd();
+}
+
+/* ---- Start screen ---- */
+function renderStart(){
+  const modes = ['mixed','compare-decimals','compare-fractions','convert','order'];
+  const mLabel = {
+    'mixed':             '🎲 Mixed (all activity types)',
+    'compare-decimals':  '🔢 Compare Decimals',
+    'compare-fractions': '½ Compare Fractions',
+    'convert':           '↔️ Convert Fraction ↔ Decimal',
+    'order':             '📊 Order by Size',
+  };
+  return `
+<div class="card">
+  <div class="logo">🔢</div>
+  <h1>Fractions &amp; Decimals<br>Challenge</h1>
+  <p class="subtitle">Compare, convert and order — how well do you know your fractions and decimals?</p>
+  <div class="section-label">Choose your activity</div>
+  <div class="mode-grid">
+    ${modes.map(m=>`
+      <button class="mode-btn${S.mode===m?' active':''}" onclick="setMode('${m}')">
+        ${mLabel[m]}
+      </button>`).join('')}
+  </div>
+  <div class="section-label">Number of questions</div>
+  <div class="num-grid">
+    ${[5,10,15].map(n=>`
+      <button class="num-btn${S.numQ===n?' active':''}" onclick="setNumQ(${n})">${n}</button>
+    `).join('')}
+  </div>
+  <button class="go-btn" onclick="startGame()">Let&rsquo;s go! →</button>
+</div>`;
+}
+
+/* ---- Playing screen ---- */
+function renderPlaying(){
+  const q   = S.questions[S.currentQ];
+  const pct = Math.round((S.currentQ/S.questions.length)*100);
+  const rightSoFar = S.answers.filter(a=>a.correct).length;
+  return `
+<div class="card">
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span>Question ${S.currentQ+1} of ${S.questions.length}</span>
+      <span>${rightSoFar} correct so far ✓</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width:${pct}%"></div>
+    </div>
+  </div>
+  ${renderQ(q)}
+</div>`;
+}
+
+function renderQ(q){
+  if(q.type==='compare')     return renderCompare(q);
+  if(q.type==='convert-f2d') return renderF2D(q);
+  if(q.type==='convert-d2f') return renderD2F(q);
+  if(q.type==='order')       return renderOrder(q);
+  return '';
+}
+
+/* ---- Compare ---- */
+function renderCompare(q){
+  const fb = S.showFB;
+  const ua = S.lastAnswer;
+  const syms  = ['<','=','>'];
+  const symsH = ['&lt;','=','&gt;'];
+
+  function cls(s){
+    if(!fb) return '';
+    if(s===q.answer)          return ' correct';
+    if(s===ua && s!==q.answer) return ' wrong';
+    if(s===q.answer && ua!==q.answer) return ' reveal';
+    return '';
+  }
+
+  return `
+    <p class="q-instr">${q.instruction}</p>
+    ${q.hint && !fb ? `<p class="q-hint">${q.hint}</p>` : ''}
+    <div class="compare-layout">
+      <div class="cval">${q.leftHTML}</div>
+      <div class="sym-btns">
+        ${syms.map((s,i)=>`
+          <button class="sym-btn${cls(s)}" ${fb?'disabled':''} onclick="doAnswer('${s}')">
+            ${symsH[i]}
+          </button>`).join('')}
+      </div>
+      <div class="cval">${q.rightHTML}</div>
+    </div>
+    ${fb ? renderFB(ua===q.answer, q) : ''}
+    ${fb ? nextBtn() : ''}`;
+}
+
+/* ---- Convert: fraction → decimal ---- */
+function renderF2D(q){
+  const fb = S.showFB;
+  const ua = S.lastAnswer;
+  function cls(opt){
+    if(!fb) return '';
+    if(opt===q.answer)           return ' correct';
+    if(opt===ua && opt!==q.answer) return ' wrong';
+    return '';
+  }
+  return `
+    <p class="q-instr">${q.instruction}</p>
+    <div class="q-display">
+      <div class="big">${q.questionHTML}</div>
+      <div class="tag">Write this fraction as a decimal</div>
+    </div>
+    <div class="mc-grid">
+      ${q.options.map(opt=>`
+        <button class="mc-btn${cls(opt)}" ${fb?'disabled':''} onclick="doAnswer('${opt}')">
+          ${opt}
+        </button>`).join('')}
+    </div>
+    ${fb ? renderFB(ua===q.answer, q) : ''}
+    ${fb ? nextBtn() : ''}`;
+}
+
+/* ---- Convert: decimal → fraction ---- */
+function renderD2F(q){
+  const fb = S.showFB;
+  const ua = S.lastAnswer;
+  function cls(opt){
+    if(!fb) return '';
+    if(opt.key===q.answer)             return ' correct';
+    if(opt.key===ua && opt.key!==q.answer) return ' wrong';
+    return '';
+  }
+  return `
+    <p class="q-instr">${q.instruction}</p>
+    <div class="q-display">
+      <div class="big">${q.questionHTML}</div>
+      <div class="tag">Write this decimal as a fraction</div>
+    </div>
+    <div class="mc-grid">
+      ${q.options.map(opt=>`
+        <button class="mc-btn${cls(opt)}" ${fb?'disabled':''} onclick="doAnswerD2F('${opt.key}')">
+          ${opt.html}
+        </button>`).join('')}
+    </div>
+    ${fb ? renderFB(ua===q.answer, q) : ''}
+    ${fb ? nextBtn() : ''}`;
+}
+
+/* ---- Order ---- */
+function renderOrder(q){
+  const fb   = S.checkedOrd;
+  const ua   = S.orderSel;
+  const allSel = ua.length === q.items.length;
+
+  function tileCls(key){
+    const pos = ua.indexOf(key);
+    if(!fb){
+      return pos>=0 ? ' selected' : '';
+    }
+    // checked: compare position in user order vs correct order
+    const upos = ua.indexOf(key);
+    const cpos = q.answer.indexOf(key);
+    if(upos === cpos) return ' correct done';
+    return ' wrong done';
+  }
+
+  return `
+    <p class="q-instr">${q.instruction}</p>
+    <div class="order-items">
+      ${q.items.map(item=>{
+        const pos = ua.indexOf(item.key);
+        const cls = tileCls(item.key);
+        const clickAttr = fb ? '' : `onclick="orderClick('${item.key}')"`;
+        return `<div class="order-tile${cls}" ${clickAttr}>
+          ${pos>=0 ? `<span class="badge">${pos+1}</span>` : ''}
+          ${item.html}
+        </div>`;
+      }).join('')}
+    </div>
+    ${!fb && !allSel  ? `<p class="order-tip">Click each fraction in order — start with position 1</p>` : ''}
+    ${!fb && ua.length>0 ? `<button class="btn-reset" onclick="resetOrder()">↺ Clear selection</button>` : ''}
+    ${!fb && allSel   ? `<button class="btn-check" onclick="checkOrder()">Check my order ✓</button>` : ''}
+    ${fb ? renderFB(JSON.stringify(ua)===JSON.stringify(q.answer), q) : ''}
+    ${fb ? nextBtn() : ''}`;
+}
+
+/* ---- Feedback banner ---- */
+function renderFB(correct, q){
+  if(correct){
+    return `<div class="feedback ok">
+      <span class="icon">✅</span>
+      <div class="body">Correct! Well done!</div>
+    </div>`;
+  }
+  return `<div class="feedback no">
+    <span class="icon">❌</span>
+    <div class="body">
+      Not quite this time.
+      <div class="sol">Correct answer: ${q.explanation}</div>
+    </div>
+  </div>`;
+}
+
+function nextBtn(){
+  const isLast = S.currentQ+1 >= S.questions.length;
+  return `<button class="btn-next" onclick="nextQ()">${isLast ? 'See my results →' : 'Next question →'}</button>`;
+}
+
+/* ---- End screen ---- */
+function renderEnd(){
+  const total   = S.questions.length;
+  const correct = S.answers.filter(a=>a.correct).length;
+  const pct     = Math.round((correct/total)*100);
+  const stars   = pct>=90 ? '⭐⭐⭐' : pct>=70 ? '⭐⭐' : pct>=50 ? '⭐' : '';
+  const msgs    = ['Keep practising — you can do it! 💡',
+                   'Good try! One more go to boost your score 🔁',
+                   'Great effort! You&rsquo;re almost there 💪',
+                   'Amazing! You&rsquo;re a fractions superstar! 🎉'];
+  const msgIdx  = pct>=90?3:pct>=70?2:pct>=50?1:0;
+
+  const wrongs = S.answers.filter(a=>!a.correct);
+
+  return `
+<div class="card">
+  <h2 style="text-align:center;margin-bottom:4px">Game Over!</h2>
+  <div class="score-wrap">
+    <div class="score-ring">
+      <div class="big-num">${correct}/${total}</div>
+      <div class="lbl">correct</div>
+    </div>
+    ${stars ? `<div class="stars">${stars}</div>` : ''}
+    <p class="score-msg">${msgs[msgIdx]}</p>
+  </div>
+
+  ${wrongs.length===0
+    ? `<div class="feedback ok" style="justify-content:center">
+         <span class="icon">🏆</span>
+         <div class="body">Perfect score — every answer correct!</div>
+       </div>`
+    : `<div class="review-hd">Let&rsquo;s look at what you missed:</div>
+       ${S.answers.map((ans,i)=>{
+         if(ans.correct) return '';
+         const q = ans.question;
+         return `<div class="review-item r-wrong">
+           <div class="review-q">Question ${i+1} &mdash; ${q.type==='compare'?'Compare':q.type==='convert-f2d'?'Fraction → Decimal':q.type==='convert-d2f'?'Decimal → Fraction':'Order'}</div>
+           <div class="review-body">${reviewBody(ans,q)}</div>
+         </div>`;
+       }).join('')}`
+  }
+
+  <button class="btn-play" onclick="playAgain()">Play again 🔄</button>
+  <button class="btn-home" onclick="goHome()">Change activity ⚙️</button>
+</div>`;
+}
+
+function reviewBody(ans, q){
+  if(q.type==='compare'){
+    const uaH = symHTML(ans.userAnswer);
+    const caH = symHTML(q.answer);
+    return `You chose: ${q.leftHTML} <span class="r-bad">${uaH}</span> ${q.rightHTML}
+            &nbsp;&rarr;&nbsp; Correct: ${q.leftHTML} <span class="r-right">${caH}</span> ${q.rightHTML}`;
+  }
+  if(q.type==='convert-f2d'){
+    return `${q.questionHTML} &rarr; you chose <span class="r-bad">${ans.userAnswer}</span>
+            &nbsp;&rarr;&nbsp; correct: <span class="r-right">${q.answer}</span>`;
+  }
+  if(q.type==='convert-d2f'){
+    // Find the HTML for the user's wrong answer
+    const wrongOpt = q.options.find(o=>o.key===ans.userAnswer);
+    const wrongH   = wrongOpt ? wrongOpt.html : ans.userAnswer;
+    const rightOpt = q.options.find(o=>o.key===q.answer);
+    const rightH   = rightOpt ? rightOpt.html : q.answer;
+    return `${q.questionHTML} &rarr; you chose <span class="r-bad">${wrongH}</span>
+            &nbsp;&rarr;&nbsp; correct: <span class="r-right">${rightH}</span>`;
+  }
+  if(q.type==='order'){
+    return `Correct order: ${q.explanation}`;
+  }
+  return q.explanation;
+}
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+function setMode(m){
+  S.mode = m;
+  render();
+}
+
+function setNumQ(n){
+  S.numQ = n;
+  render();
+}
+
+function startGame(){
+  S.screen     = 'playing';
+  S.questions  = generateQuestions(S.mode, S.numQ);
+  S.currentQ   = 0;
+  S.answers    = [];
+  S.orderSel   = [];
+  S.showFB     = false;
+  S.checkedOrd = false;
+  S.lastAnswer = null;
+  render();
+}
+
+function doAnswer(val){
+  if(S.showFB) return;
+  const q = S.questions[S.currentQ];
+  S.lastAnswer = val;
+  S.showFB     = true;
+  S.answers.push({correct: val===q.answer, userAnswer:val, question:q});
+  render();
+}
+
+function doAnswerD2F(key){
+  if(S.showFB) return;
+  const q = S.questions[S.currentQ];
+  S.lastAnswer = key;
+  S.showFB     = true;
+  S.answers.push({correct: key===q.answer, userAnswer:key, question:q});
+  render();
+}
+
+function orderClick(key){
+  if(S.checkedOrd) return;
+  const idx = S.orderSel.indexOf(key);
+  if(idx>=0){
+    // Deselect from this index onwards
+    S.orderSel = S.orderSel.slice(0,idx);
+  } else {
+    S.orderSel = [...S.orderSel, key];
+  }
+  render();
+}
+
+function resetOrder(){
+  S.orderSel = [];
+  render();
+}
+
+function checkOrder(){
+  const q       = S.questions[S.currentQ];
+  const correct = JSON.stringify(S.orderSel)===JSON.stringify(q.answer);
+  S.answers.push({correct, userAnswer:S.orderSel, question:q});
+  S.checkedOrd = true;
+  render();
+}
+
+function nextQ(){
+  S.currentQ++;
+  S.showFB     = false;
+  S.checkedOrd = false;
+  S.orderSel   = [];
+  S.lastAnswer = null;
+  if(S.currentQ>=S.questions.length) S.screen = 'end';
+  render();
+}
+
+function playAgain(){
+  startGame();
+}
+
+function goHome(){
+  S.screen = 'start';
+  render();
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+render();
+</script>
+</body>
+</html>
