@@ -47,6 +47,8 @@ h2 { font-size: 30px; font-weight: normal; margin: 0 0 14px; }
 .prev { font-size: 22px; color: var(--muted); margin: 0 0 10px; line-height: 1.5; }
 .cur { font-size: 34px; line-height: 1.7; margin: 4px 0; }
 body.sb .cur { line-height: 2.2; }
+.cur.whole { font-size: 25px; line-height: 1.55; } body.sb .cur.whole { line-height: 2.1; }
+@media (max-width: 600px) { .cur.whole { font-size: 21px; } }
 .w { display: inline-block; border-radius: 10px; padding: 0 3px; margin: 0 1px; }
 .w.tap { background: #f4eef5; }
 .w.ev { background: var(--ev); }
@@ -61,6 +63,12 @@ body.sb .cur { line-height: 2.2; }
 .feedback.ok { background: var(--ok-soft); color: #145c31; } .feedback.no { background: var(--warn-soft); color: #7a3a07; }
 .stuck { margin-top: 16px; background: var(--magenta-soft); border-radius: 18px; padding: 14px 18px; text-align: center; font-size: 23px; }
 .stuck b { font-weight: normal; color: var(--magenta); }
+.setTag { display: inline-block; background: var(--magenta-soft); color: var(--magenta); border-radius: 999px; padding: 4px 14px; font-size: 20px; margin-bottom: 8px; }
+.ord { position: relative; padding-left: 64px; text-align: left; }
+.ord .num { position: absolute; left: 12px; top: 50%; margin-top: -20px; width: 40px; height: 40px; border-radius: 50%; border: 3px dashed #cbb7c6; display: grid; place-items: center; font-size: 22px; }
+.ord.picked .num { border: 0; background: var(--magenta); color: #fff; }
+.ord.ok .num { background: var(--ok); color: #fff; border: 0; } .ord.no .num { background: var(--warn); color: #fff; border: 0; }
+.ordList { display: grid; gap: 12px; }
 .star { font-size: 110px; text-align: center; animation: pop .8s ease-out; }
 @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
 /* sound buttons */
@@ -209,7 +217,7 @@ function setHeader() {
   document.getElementById('whoBox').style.display = S ? 'flex' : 'none';
   sbBtn.style.display = S ? 'inline-block' : 'none';
   var dots = document.getElementById('dots'); dots.innerHTML = '';
-  if (S && S.P) S.P.s.forEach(function (x, i) { dots.appendChild(el('span', { class: i < S.si ? 'done' : (i === S.si ? 'now' : '') })); });
+  if (S && S.items) S.items.forEach(function (x, i) { dots.appendChild(el('span', { class: i < S.si ? 'done' : (i === S.si ? 'now' : '') })); });
 }
 function listFor(l) { return l.sound ? MAH_PASSAGES : PASSAGES; }
 
@@ -230,9 +238,14 @@ function todaysIndex(l) {
 }
 
 /* ---------------- reading a passage ---------------- */
-function begin(l, idx) {
-  var sid = l.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() + '-R-' + todayStr().replace(/-/g, '') + '-' + new Date().toTimeString().slice(0, 5).replace(':', '') + '-' + Math.random().toString(36).slice(2, 5);
-  S = { learner: l, session: sid, P: listFor(l)[idx], idx: idx, si: 0 };
+var SET_NAMES = { 1: 'Read and answer', 2: 'Think deeper', 3: 'Challenge' };
+var SET_ICONS = { 1: '📖', 2: '🤔', 3: '🏆' };
+function begin(l, idx, set) {
+  set = set || 1;
+  var P = listFor(l)[idx], extra = MORE[P.id] || [];
+  if (set > 1 && !extra[set - 2]) set = 1;
+  var sid = l.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() + '-R-' + todayStr().replace(/-/g, '') + '-' + new Date().toTimeString().slice(0, 5).replace(':', '') + '-' + Math.random().toString(36).slice(2, 5) + (set > 1 ? '-S' + set : '');
+  S = { learner: l, session: sid, P: P, idx: idx, si: 0, set: set, items: set === 1 ? P.s : extra[set - 2] };
   var on = sget('sb:' + l.name, !!l.sound); document.body.classList.toggle('sb', on); sbBtn.classList.toggle('on', on);
   sentence();
 }
@@ -254,13 +267,16 @@ function wordSpans(line) {
 function plainOf(line) { return S.learner.sound ? line.split(' ').map(function (t) { var m = t.match(/^(.*?)([.,!?]*)$/); return parseG(m[1]).text + m[2]; }).join(' ') : line; }
 function sentence() {
   setHeader();
-  var P = S.P, it = P.s[S.si], t0 = Date.now(), answered = false, first = false, answerText = '', tapped = [];
+  var P = S.P, it = S.items[S.si], t0 = Date.now(), answered = false, first = false, answerText = '', tapped = [];
+  var whole = S.set > 1, where = whole ? 'passage' : 'sentence';
   S.sbUsed = document.body.classList.contains('sb');
-  var words = wordSpans(it.t);
-  var cur = el('p', { class: 'cur' }); words.forEach(function (w, i) { if (i) cur.appendChild(document.createTextNode(' ')); cur.appendChild(w.node); });
+  var words = whole ? [].concat.apply([], P.s.map(function (x) { return wordSpans(x.t); })) : wordSpans(it.t);
+  var cur = el('p', { class: whole ? 'cur whole' : 'cur' }); words.forEach(function (w, i) { if (i) cur.appendChild(document.createTextNode(' ')); cur.appendChild(w.node); });
   var prev = el('p', { class: 'prev', text: P.s.slice(0, S.si).map(function (x) { return plainOf(x.t); }).join(' ') });
-  var textCard = el('div', { class: 'card' }, el('div', { class: 'title', text: P.title }),
-    el('div', { class: 'passage' }, el('div', { class: 'txt' }, S.si ? prev : null, cur), it.pic ? el('div', { class: 'pic', text: it.pic }) : null));
+  var textCard = el('div', { class: 'card' },
+    el('div', { class: 'setTag', text: SET_ICONS[S.set] + ' ' + SET_NAMES[S.set] }),
+    el('div', { class: 'title', text: P.title }),
+    el('div', { class: 'passage' }, el('div', { class: 'txt' }, !whole && S.si ? prev : null, cur), !whole && it.pic ? el('div', { class: 'pic', text: it.pic }) : null));
   var qCard = el('div', { class: 'card' }), fb = el('div');
   var evs = (it.ev || []).map(norm);
   function showEvidence() { words.forEach(function (w) { if (evs.indexOf(w.norm) >= 0) w.node.classList.add('ev'); }); }
@@ -279,24 +295,24 @@ function sentence() {
         count.textContent = tapped.length ? ' (' + tapped.length + ' tapped)' : '';
       };
     });
-    var last = S.si === S.P.s.length - 1;
-    fb.appendChild(el('div', { class: 'stuck' }, '✋ Were any words tricky to read? Tap them in the sentence.', count));
-    var nb = el('div', { class: 'next' }, el('button', { class: 'big', type: 'button', onclick: function () { save(); } }, last ? 'Finish' : 'Next sentence'));
+    var last = S.si === S.items.length - 1;
+    fb.appendChild(el('div', { class: 'stuck' }, '✋ Were any words tricky to read? Tap them in the ' + where + '.', count));
+    var nb = el('div', { class: 'next' }, el('button', { class: 'big', type: 'button', onclick: function () { save(); } }, last ? 'Finish' : (whole ? 'Next question' : 'Next sentence')));
     fb.appendChild(nb);
     setTimeout(function () { try { nb.scrollIntoView({ behavior: 'smooth', block: 'end' }); } catch (e) {} }, 150);
   }
   function save() {
     var tw = tapped.map(function (w) { return w.ann ? w.word + '|' + w.ann.toLowerCase().replace(/[^a-z_\-']/g, '') : w.word; }).join('; ');
-    queue({ learner: S.learner.name, session: S.session, passage: P.id, sentence: S.si + 1, qtype: it.type, first: first ? 'Correct' : 'Incorrect',
+    queue({ learner: S.learner.name, session: S.session, passage: P.id + (S.set > 1 ? ' ' + SET_NAMES[S.set] : ''), sentence: S.si + 1, qtype: it.type, first: first ? 'Correct' : 'Incorrect',
       answer: answerText, tapped: tw, sound: S.sbUsed ? 'on' : 'off',
       seconds: Math.round((Date.now() - t0) / 1000), time: new Date().toISOString() });
     S.si++;
-    if (S.si < P.s.length) { sentence(); window.scrollTo(0, 0); } else finished();
+    if (S.si < S.items.length) { sentence(); window.scrollTo(0, 0); } else finished();
   }
   qCard.appendChild(el('p', { class: 'q', text: it.q }));
   if (it.tap) {
     var taps = it.tap.map(norm);
-    qCard.appendChild(el('p', { class: 'hint', text: '👆 Tap the word in the sentence.' }));
+    qCard.appendChild(el('p', { class: 'hint', text: '👆 Tap the word in the ' + where + '.' }));
     words.forEach(function (w) {
       w.node.classList.add('tap');
       w.node.onclick = function () {
@@ -307,6 +323,26 @@ function sentence() {
         afterAnswer(ok, it.why);
       };
     });
+  } else if (it.order) {
+    var picked = [], cards = shuffle(it.order).map(function (t) {
+      var num = el('span', { class: 'num', text: '' }), b = el('button', { class: 'opt ord', type: 'button' }, num, t);
+      b._t = t; b._num = num;
+      b.onclick = function () {
+        if (answered) return;
+        var i = picked.indexOf(b);
+        if (i >= 0) picked.splice(i); else picked.push(b);
+        cards.forEach(function (c) { var k = picked.indexOf(c); c.classList.toggle('picked', k >= 0); c._num.textContent = k >= 0 ? String(k + 1) : ''; });
+        if (picked.length === it.order.length) {
+          var ok = picked.every(function (c, k) { return c._t === it.order[k]; });
+          answerText = picked.map(function (c) { return c._t; }).join(' > ');
+          cards.forEach(function (c) { var right = it.order.indexOf(c._t); c.classList.add(picked.indexOf(c) === right ? 'ok' : 'no'); c._num.textContent = String(right + 1); c.disabled = true; });
+          afterAnswer(ok, ok ? '' : 'The numbers now show the right order.');
+        }
+      };
+      return b;
+    });
+    qCard.appendChild(el('p', { class: 'hint', text: '👆 Tap them in order: first, next, last. Tap again to undo.' }));
+    qCard.appendChild(el('div', { class: 'ordList' }, cards));
   } else {
     var keep = it.o.length === 2; // true/false and yes/no stay in order
     var correct = it.o[it.a || 0];
@@ -328,14 +364,21 @@ function sentence() {
   screen(textCard, qCard);
 }
 function finished() {
-  // bonus: re-read an earlier passage (the one before this, then the one before that)
-  var bonus = S.idx - 1;
-  var l = S.learner; S.P = null; setHeader();
+  var l = S.learner, idx = S.idx, set = S.set, P = S.P, list = listFor(l), sets = MORE[P.id] || [];
+  // another text: the one before, or the next one if this is the first
+  var other = idx > 0 ? idx - 1 : (idx + 1 < list.length ? idx + 1 : -1);
+  S.items = null; setHeader();
+  var heads = { 1: 'You read the whole passage, ' + l.first + '!', 2: 'Brilliant thinking, ' + l.first + '!', 3: 'Challenge complete, ' + l.first + '!' };
+  function setBtn(n) { return el('button', { class: 'big', type: 'button', onclick: function () { begin(l, idx, n); } }, SET_ICONS[n] + ' ' + SET_NAMES[n]); }
+  var textBtn = other >= 0 ? el('button', { class: 'big', type: 'button', onclick: function () { begin(l, other, 1); } }, '📚 Read another text') : null;
+  var btns = [], msg = null;
+  if (set === 1 && sets[0]) { btns.push(setBtn(2)); msg = 'There are more questions about the same text.'; }
+  else if (set === 2 && sets[1]) { btns.push(setBtn(3)); if (textBtn) btns.push(textBtn); msg = 'Choose: the Challenge on this text, or a new text.'; }
+  else if (textBtn) btns.push(textBtn);
   screen(el('div', { class: 'card center' },
-    el('h2', { text: 'You read the whole passage, ' + l.first + '!' }), el('div', { class: 'star', text: '⭐' }),
-    el('div', { class: 'next' },
-      bonus >= 0 ? el('button', { class: 'big', type: 'button', onclick: function () { begin(l, bonus); } }, 'Read an earlier passage again') : null,
-      el('button', { class: bonus >= 0 ? 'big alt' : 'big', type: 'button', onclick: home }, 'Finish'))));
+    el('h2', { text: heads[set] }), el('div', { class: 'star', text: set === 3 ? '🏆' : '⭐' }),
+    msg ? el('p', { text: msg }) : null,
+    el('div', { class: 'next' }, btns)));
   flush();
 }
 
@@ -345,70 +388,70 @@ function finished() {
    tap = the words that count as right for a "tap the word" question.
    ===================================================================== */
 var PASSAGES = [
-  { id: 'OMS-1', title: 'The harbour at dawn', date: '2026-11-13', s: [
+  { id: 'OMS-1', title: 'The harbour at dawn', date: '2026-11-12', s: [
     { t: 'Before the sun was up, the harbour was silent except for the gentle slap of water against the boats.', type: 'Vocabulary', q: "What does the word 'silent' mean here?", o: ['very quiet', 'very busy', 'very cold'], ev: ['silent'], why: 'The only sound was the gentle slap of water, so it was very quiet.' },
     { t: 'Finn crept down the stone steps, careful not to wake the gulls sleeping on the wall.', type: 'Inference', q: 'Why did Finn creep down the steps?', o: ['He did not want to wake the gulls.', 'He was in a big hurry.', 'He was scared of the steps.'], ev: ['careful', 'wake'], why: 'It says he was careful not to wake the gulls.' },
     { t: 'Slowly, a pale pink glow spread across the sky above the lighthouse.', type: 'Retrieval', q: 'Where did the pink glow spread?', o: ['across the sky above the lighthouse', 'under the boats', 'along the beach'], ev: ['across', 'sky', 'above', 'lighthouse'] },
     { t: 'The fishing boats rocked on the water as if they were stretching after a long sleep.', type: 'Evidence', q: 'Tap a word that makes the boats sound like people waking up.', tap: ['stretching', 'sleep'], why: 'People stretch after a long sleep when they wake up.' },
     { t: 'By the time the first fisherman arrived, the whole harbour was golden with morning light.', type: 'Summarise', q: 'What is this passage mostly about?', o: ['the harbour waking up at sunrise', 'a fisherman catching lots of fish', 'a busy day at the market'], why: 'Each sentence shows the harbour getting lighter as the morning begins.' }
   ] },
-  { id: 'OMS-2', title: 'Rock pools', date: '2026-11-16', s: [
+  { id: 'OMS-2', title: 'Rock pools', date: '2026-11-13', s: [
     { t: 'When the tide went out, it left behind dozens of tiny pools between the rocks.', type: 'Retrieval', q: 'When were the pools left behind?', o: ['when the tide went out', 'in the middle of the night', 'when it started to rain'], ev: ['tide', 'went', 'out'] },
     { t: 'Finn knelt down and peered into the clearest one.', type: 'Vocabulary', q: "What does 'peered' mean?", o: ['looked closely', 'shouted loudly', 'jumped quickly'], ev: ['peered', 'knelt'], why: 'Finn knelt down to look carefully into the water.' },
     { t: 'A small crab scuttled sideways and tucked itself under a ribbon of green seaweed.', type: 'True or false', q: 'True or false: the crab hid under a rock.', o: ['True', 'False'], a: 1, ev: ['seaweed'], why: 'The crab hid under the seaweed, not a rock.' },
     { t: 'Finn held his breath and kept perfectly still, hoping it would come out again.', type: 'Inference', q: 'How was Finn feeling?', o: ['curious and patient', 'angry and cross', 'bored and tired'], ev: ['held', 'still', 'hoping'], why: 'He kept still and hoped it would come out, so he wanted to see it.' },
     { t: 'At last, two tiny claws appeared, followed by a pair of curious eyes on stalks.', type: 'Prediction', q: 'What do you think will happen next?', o: ['The crab will come out to look around.', 'Finn will go home for tea.', 'The rock pool will dry up.'], ev: ['appeared', 'curious'], why: 'Its claws and eyes are already peeping out.' }
   ] },
-  { id: 'OMS-3', title: 'Reading the clouds', date: '2026-11-17', s: [
+  { id: 'OMS-3', title: 'Reading the clouds', date: '2026-11-16', s: [
     { t: 'Grandad said the clouds were like a map that told you what the weather would do.', type: 'Retrieval', q: 'What did Grandad say the clouds were like?', o: ['a map', 'a blanket', 'a boat'], ev: ['map'] },
     { t: 'Fluffy white clouds meant a fine day, perfect for sailing.', type: 'Inference', q: 'Would Grandad go sailing when the clouds were fluffy and white?', o: ['Yes, because it would be a fine day.', 'No, because it would rain.', 'No, because it would be too dark.'], ev: ['fine', 'perfect', 'sailing'] },
     { t: 'Thin, wispy clouds high in the sky meant the wind was changing.', type: 'Vocabulary', q: "What are 'wispy' clouds like?", o: ['thin and light', 'dark and heavy', 'round and fat'], ev: ['thin', 'wispy'] },
     { t: 'Finn lay on his back in the long grass and tried to read the sky like a book.', type: 'Evidence', q: 'Tap the word that shows Finn was trying to understand the sky.', tap: ['read'], why: 'He tried to read the sky like a book, to work out what it meant.' },
     { t: 'Today the clouds looked like cotton wool, so Finn knew it would be a perfect day.', type: 'True or false', q: 'True or false: Finn thought today would be a bad day.', o: ['True', 'False'], a: 1, ev: ['perfect'], why: 'He knew it would be a perfect day.' }
   ] },
-  { id: 'OMS-4', title: 'The lighthouse', date: '2026-11-18', s: [
+  { id: 'OMS-4', title: 'The lighthouse', date: '2026-11-17', s: [
     { t: 'At the end of the long stone pier stood a tall white lighthouse with a red stripe around its middle.', type: 'Retrieval', q: 'What colour was the stripe on the lighthouse?', o: ['red', 'white', 'blue'], ev: ['red', 'stripe'] },
     { t: 'Every night, its bright beam swept across the dark water like a giant torch.', type: 'Vocabulary', q: "What does 'swept' mean here?", o: ['moved smoothly across', 'cleaned with a brush', 'stopped suddenly'], ev: ['swept', 'across'] },
     { t: 'The light warned sailors that there were sharp rocks hidden beneath the waves.', type: 'Inference', q: 'Why do sailors need the light?', o: ['so their boats do not hit the rocks', 'so they can read at night', 'so they can find fish'], ev: ['warned', 'sharp', 'rocks'] },
     { t: 'Finn liked to count the flashes from his bedroom window before he fell asleep.', type: 'True or false', q: 'True or false: Finn could see the lighthouse from his bedroom.', o: ['True', 'False'], a: 0, ev: ['bedroom', 'window'], why: 'He counted the flashes from his bedroom window.' },
     { t: 'One, two, three... the steady rhythm made him feel safe and sleepy.', type: 'Evidence', q: 'Tap a word that tells you how Finn felt.', tap: ['safe', 'sleepy'] }
   ] },
-  { id: 'OMS-5', title: 'Sunset on the beach', date: '2026-11-19', s: [
+  { id: 'OMS-5', title: 'Sunset on the beach', date: '2026-11-18', s: [
     { t: 'As the afternoon faded, the beach slowly emptied of people.', type: 'Vocabulary', q: "What does 'faded' mean here?", o: ['slowly came to an end', 'got brighter', 'got louder'], ev: ['faded', 'slowly'] },
     { t: 'Only Finn and Grandad remained, sitting on a blanket near the dunes.', type: 'Retrieval', q: 'Where were Finn and Grandad sitting?', o: ['on a blanket near the dunes', 'in the sea', 'on a boat'], ev: ['blanket', 'dunes'] },
     { t: 'The sun dipped lower until it seemed to touch the edge of the sea.', type: 'Inference', q: 'What time of day is it?', o: ['evening', 'early morning', 'lunchtime'], ev: ['dipped', 'lower'], why: 'The sun is going down, so it is evening.' },
     { t: 'Streaks of orange, pink and purple stretched across the sky like ribbons.', type: 'Retrieval', q: 'Which colours were in the sky?', o: ['orange, pink and purple', 'blue, green and grey', 'black and white'], ev: ['orange', 'pink', 'purple'] },
     { t: 'Grandad smiled and said it was the best painting in the world, and nobody had painted it.', type: 'Inference', q: "What did Grandad mean by 'the best painting in the world'?", o: ['the beautiful sunset', 'a picture in his house', 'a painting Finn made'], ev: ['painting', 'nobody'], why: 'Nobody painted it, so he meant the sky itself.' }
   ] },
-  { id: 'OMS-6', title: "Finn's boat", date: '2026-11-20', s: [
+  { id: 'OMS-6', title: "Finn's boat", date: '2026-11-19', s: [
     { t: 'Finn collected driftwood, old rope and a faded blue sheet from the shed.', type: 'Retrieval', q: 'Which of these did Finn collect?', o: ['driftwood', 'a ladder', 'a bucket'], ev: ['driftwood'] },
     { t: 'He wanted to build a boat that could sail all the way to where the ocean meets the sky.', type: 'Inference', q: 'What kind of journey was Finn imagining?', o: ['a magical adventure', 'a quick trip to the shop', 'a swim in the pool'], ev: ['ocean', 'meets', 'sky'], why: 'Nobody can really sail to where the ocean meets the sky, so it is an imaginary adventure.' },
     { t: 'Hammering carefully, he joined the pieces of wood together until his hands ached.', type: 'Vocabulary', q: "What does 'ached' mean?", o: ['hurt', 'glowed', 'grew'], ev: ['ached'] },
     { t: 'Then he tied the sheet to a tall pole to make a sail that rippled in the breeze.', type: 'Evidence', q: 'Tap the word that tells you the sail moved.', tap: ['rippled'] },
     { t: 'When it was finished, Finn stood back and grinned at the boat he had made all by himself.', type: 'Summarise', q: 'What is this passage mostly about?', o: ['Finn building his own boat', 'Finn going fishing with Grandad', 'Finn tidying the shed'] }
   ] },
-  { id: 'MON-1', title: 'What is a monarch?', date: '2026-11-24', s: [
+  { id: 'MON-1', title: 'What is a monarch?', date: '2026-11-20', s: [
     { t: 'A monarch is a king or queen who is the head of a country.', type: 'Retrieval', q: 'What is a monarch?', o: ['a king or queen', 'a soldier', 'a castle'], ev: ['king', 'queen'] },
     { t: 'In the past, monarchs had enormous power and could make the laws themselves.', type: 'Vocabulary', q: "What does 'enormous' mean?", o: ['very big', 'very small', 'very old'], ev: ['enormous'] },
     { t: 'Today, our king still opens Parliament, but the government makes the laws.', type: 'True or false', q: 'True or false: today the king makes all the laws.', o: ['True', 'False'], a: 1, ev: ['government', 'makes', 'laws'], why: 'The government makes the laws now.' },
     { t: 'A new monarch is crowned at a special ceremony called a coronation.', type: 'Retrieval', q: 'What is a coronation?', o: ['the ceremony where a monarch is crowned', 'a type of crown', 'a royal party'], ev: ['crowned', 'ceremony', 'coronation'] },
     { t: "During the coronation, a heavy gold crown is placed carefully on the monarch's head.", type: 'Evidence', q: 'Tap the word that tells you the crown was not light.', tap: ['heavy'] }
   ] },
-  { id: 'MON-2', title: 'Henry VIII', date: '2026-11-25', s: [
+  { id: 'MON-2', title: 'Henry VIII', date: '2026-11-24', s: [
     { t: 'Henry VIII became King of England in 1509, when he was just seventeen years old.', type: 'Retrieval', q: 'How old was Henry when he became king?', o: ['seventeen', 'nine', 'forty'], ev: ['seventeen'] },
     { t: 'As a young king, he loved music, jousting and grand feasts.', type: 'Vocabulary', q: "What were 'grand' feasts like?", o: ['big and impressive', 'small and quiet', 'cold and boring'], ev: ['grand'] },
     { t: 'He built many warships, and his navy grew stronger than ever before.', type: 'Inference', q: 'Why do you think Henry built so many warships?', o: ['to keep England strong and safe', 'to go on holiday', 'to catch more fish'], ev: ['warships', 'navy', 'stronger'] },
     { t: 'Henry also ordered new palaces to be built, filled with rich tapestries and paintings.', type: 'True or false', q: "True or false: Henry's palaces were plain and empty.", o: ['True', 'False'], a: 1, ev: ['rich', 'tapestries', 'paintings'], why: 'They were filled with rich tapestries and paintings.' },
     { t: 'People still remember Henry today because he changed England in many ways.', type: 'Summarise', q: 'Which sentence best sums up Henry VIII?', o: ['He was a powerful king who changed England.', 'He was a quiet farmer.', 'He never left his palace.'], ev: ['changed'] }
   ] },
-  { id: 'MON-3', title: 'Queen Elizabeth I', date: '2026-11-26', s: [
+  { id: 'MON-3', title: 'Queen Elizabeth I', date: '2026-11-25', s: [
     { t: "Elizabeth I was Henry VIII's daughter, and she became queen in 1558.", type: 'Retrieval', q: "Who was Elizabeth's father?", o: ['Henry VIII', 'a sailor from Bristol', 'a French king'], ev: ['henry', "viii's"] },
     { t: 'She was a clever and determined ruler who could speak several languages.', type: 'Vocabulary', q: "What does 'determined' mean?", o: ['did not give up', 'always sleepy', 'very shy'], ev: ['determined'] },
     { t: 'Elizabeth travelled around the country so that ordinary people could see their queen.', type: 'Inference', q: 'Why did Elizabeth travel around the country?', o: ['so people could see her and feel close to her', 'because she was lost', 'to buy new clothes'], ev: ['ordinary', 'people', 'see'] },
     { t: 'Wherever she went, towns spent huge amounts of money getting ready for her visit.', type: 'Evidence', q: 'Tap the word that tells you a lot of money was spent.', tap: ['huge'] },
     { t: "In 1574, it was Bristol's turn to welcome the queen.", type: 'Prediction', q: 'What do you think Bristol did next?', o: ['got the city ready for her visit', 'forgot she was coming', 'moved to a new town'], ev: ['welcome'] }
   ] },
-  { id: 'MON-4', title: 'Bristol gets ready', date: '2026-11-27', s: [
+  { id: 'MON-4', title: 'Bristol gets ready', date: '2026-11-26', s: [
     { t: 'When the people of Bristol heard the queen was coming, they rushed to prepare.', type: 'Inference', q: 'How did the people of Bristol feel about the visit?', o: ['excited', 'bored', 'cross'], ev: ['rushed'], why: 'They rushed to get ready, so they were excited.' },
     { t: 'Workers painted the city gates and covered the High Cross in shining gold.', type: 'Retrieval', q: 'What was covered in gold?', o: ['the High Cross', 'the river', 'the ships'], ev: ['high', 'cross', 'gold'] },
     { t: "Sand was spread over the muddy streets so that the queen's horses would not slip.", type: 'Retrieval', q: 'Why was sand spread on the streets?', o: ['so the horses would not slip', 'to make a beach', 'to keep the streets warm'], ev: ['horses', 'slip'] },
@@ -483,70 +526,70 @@ var WORD_G = {
 
 // Earlier stage passages: every word split into graphemes ('-'), split digraphs as a_e
 var MAH_PASSAGES = [
-  { id: 'MAH-OMS-1', title: 'At the sea', date: '2026-11-13', s: [
+  { id: 'MAH-OMS-1', title: 'At the sea', date: '2026-11-12', s: [
     { t: 'I c-a-n s-ee th-e s-ea.', pic: '🌊', type: 'Retrieval', q: 'What can I see?', o: ['🌊 the sea', '🐶 a dog', '🚗 a car'], ev: ['sea'] },
     { t: 'Th-e s-u-n i-s h-o-t.', pic: '☀️', type: 'Yes or no', q: 'Is the sun hot?', o: ['✅ yes', '❌ no'], ev: ['hot'] },
     { t: 'A c-r-a-b i-s o-n a r-o-ck.', pic: '🦀', type: 'Retrieval', q: 'Where is the crab?', o: ['⛰️ on a rock', '🛏️ in bed', '🚗 in a car'], ev: ['rock'] },
     { t: 'Th-e b-oa-t h-a-s a r-e-d s-ai-l.', pic: '⛵', type: 'Retrieval', q: 'What colour is the sail?', o: ['❤️ red', '💙 blue', '💚 green'], ev: ['red'] },
     { t: 'F-i-sh s-w-i-m i-n th-e d-ee-p s-ea.', pic: '🐟', type: 'Retrieval', q: 'What swims in the sea?', o: ['🐟 fish', '🐱 a cat', '🐦 a bird'], ev: ['fish'] }
   ] },
-  { id: 'MAH-OMS-2', title: 'Rock pools', date: '2026-11-16', s: [
+  { id: 'MAH-OMS-2', title: 'Rock pools', date: '2026-11-13', s: [
     { t: 'Th-e t-i_e-d i-s ou-t.', pic: '🏖️', type: 'Retrieval', q: 'Is the tide in or out?', o: ['out', 'in'], ev: ['out'] },
     { t: 'L-oo-k i-n th-e p-oo-l.', pic: '👀', type: 'Retrieval', q: 'Where do we look?', o: ['💧 in the pool', '🌳 up a tree', '👜 in a bag'], ev: ['pool'] },
     { t: 'A s-t-ar-f-i-sh i-s p-i-n-k.', pic: '⭐', type: 'Retrieval', q: 'What colour is the starfish?', o: ['🌸 pink', '🖤 black', '💛 yellow'], ev: ['pink'] },
     { t: 'Th-e c-r-a-b h-i_e-d-s u-n-d-er a s-t-o_e-n.', pic: '🦀', type: 'Retrieval', q: 'Where does the crab hide?', o: ['⛰️ under a stone', '☁️ in the sky', '🏠 in a house'], ev: ['under', 'stone'] },
     { t: 'I s-ee a sh-e-ll b-y m-y f-oo-t.', pic: '🐚', type: 'Retrieval', q: 'What do I see?', o: ['🐚 a shell', '🍎 an apple', '⚽ a ball'], ev: ['shell'] }
   ] },
-  { id: 'MAH-OMS-3', title: 'Clouds', date: '2026-11-17', s: [
+  { id: 'MAH-OMS-3', title: 'Clouds', date: '2026-11-16', s: [
     { t: 'L-oo-k u-p a-t th-e s-k-y.', pic: '🌤️', type: 'Retrieval', q: 'Where do I look?', o: ['⬆️ up at the sky', '⬇️ down at the sand', '🚪 at the door'], ev: ['up', 'sky'] },
     { t: 'Th-e c-l-ou-d-s ar-e wh-i_e-t.', pic: '☁️', type: 'Retrieval', q: 'What colour are the clouds?', o: ['⚪ white', '❤️ red', '💚 green'], ev: ['white'] },
     { t: 'A b-ir-d f-l-ie-s h-igh.', pic: '🐦', type: 'Retrieval', q: 'What flies high?', o: ['🐦 a bird', '🐟 a fish', '🐶 a dog'], ev: ['bird'] },
     { t: 'Th-e w-i-n-d b-l-ow-s.', pic: '🌬️', type: 'Yes or no', q: 'Does the wind blow?', o: ['✅ yes', '❌ no'], ev: ['blows'] },
     { t: 'R-ai-n f-a-ll-s d-ow-n o-n th-e t-ow-n.', pic: '🌧️', type: 'Retrieval', q: 'What falls down?', o: ['🌧️ rain', '⭐ stars', '🍎 apples'], ev: ['rain'] }
   ] },
-  { id: 'MAH-OMS-4', title: 'The lighthouse', date: '2026-11-18', s: [
+  { id: 'MAH-OMS-4', title: 'The lighthouse', date: '2026-11-17', s: [
     { t: 'Th-e l-igh-t i-s b-r-igh-t.', pic: '💡', type: 'Yes or no', q: 'Is the light bright?', o: ['✅ yes', '❌ no'], ev: ['bright'] },
     { t: 'I-t sh-i_e-n-s a-t n-igh-t.', pic: '🌃', type: 'Retrieval', q: 'When does it shine?', o: ['🌙 at night', '☀️ in the day'], ev: ['night'] },
     { t: 'Sh-i-p-s k-ee-p a-w-ay f-r-o-m th-e r-o-ck-s.', pic: '🚢', type: 'Retrieval', q: 'What do ships keep away from?', o: ['⛰️ the rocks', '🐟 the fish', '☀️ the sun'], ev: ['rocks'] },
     { t: 'A m-a-n l-i-ve-s a-t th-e t-o-p.', pic: '👨', type: 'Retrieval', q: 'Who lives at the top?', o: ['👨 a man', '🐶 a dog', '👑 a king'], ev: ['man'] },
     { t: 'H-e c-a-n h-ear th-e s-ea.', pic: '👂', type: 'Retrieval', q: 'What can he hear?', o: ['🌊 the sea', '🎵 a song', '🐶 a dog'], ev: ['sea'] }
   ] },
-  { id: 'MAH-OMS-5', title: 'Sunset', date: '2026-11-19', s: [
+  { id: 'MAH-OMS-5', title: 'Sunset', date: '2026-11-18', s: [
     { t: 'Th-e s-u-n g-oe-s d-ow-n.', pic: '🌅', type: 'Yes or no', q: 'Does the sun go down?', o: ['✅ yes', '❌ no'], ev: ['down'] },
     { t: 'Th-e s-k-y t-ur-n-s or-a-n-ge.', pic: '🧡', type: 'Retrieval', q: 'What colour is the sky?', o: ['🧡 orange', '💙 blue', '🖤 black'], ev: ['orange'] },
     { t: 'W-e s-i-t o-n th-e s-a-n-d.', pic: '🏖️', type: 'Retrieval', q: 'Where do we sit?', o: ['🏖️ on the sand', '🌊 in the sea', '🌳 in a tree'], ev: ['sand'] },
     { t: 'G-r-a-n-d-a-d h-a-s a c-u-p o-f t-ea.', pic: '☕', type: 'Retrieval', q: 'What does Grandad have?', o: ['☕ a cup of tea', '🍕 a pizza', '🎈 a balloon'], ev: ['tea'] },
     { t: 'Th-e m-oo-n c-o-m-e-s ou-t s-oo-n.', pic: '🌙', type: 'Retrieval', q: 'What comes out?', o: ['🌙 the moon', '☀️ the sun', '🌈 a rainbow'], ev: ['moon'] }
   ] },
-  { id: 'MAH-OMS-6', title: 'A boat', date: '2026-11-20', s: [
+  { id: 'MAH-OMS-6', title: 'A boat', date: '2026-11-19', s: [
     { t: 'F-i-nn m-a_e-k-s a b-oa-t.', pic: '⛵', type: 'Retrieval', q: 'What does Finn make?', o: ['⛵ a boat', '🏠 a house', '🚗 a car'], ev: ['boat'] },
     { t: 'H-e u_e-s-s w-oo-d a-n-d r-o_e-p.', pic: '🔨', type: 'Retrieval', q: 'What does he use?', o: ['🔨 wood and rope', '🍎 apples and pears', '🎁 toys'], ev: ['wood', 'rope'] },
     { t: 'Th-e s-ai-l i-s b-l-ue.', pic: '⛵', type: 'Retrieval', q: 'What colour is the sail?', o: ['💙 blue', '❤️ red', '💛 yellow'], ev: ['blue'] },
     { t: 'I-t f-l-oa-t-s o-n th-e w-a-t-er.', pic: '🌊', type: 'Yes or no', q: 'Does it float?', o: ['✅ yes', '❌ no'], ev: ['floats'] },
     { t: 'F-i-nn i-s h-a-pp-y.', pic: '😊', type: 'Retrieval', q: 'How does Finn feel?', o: ['😊 happy', '😢 sad', '😠 cross'], ev: ['happy'] }
   ] },
-  { id: 'MAH-MON-1', title: 'A king', date: '2026-11-24', s: [
+  { id: 'MAH-MON-1', title: 'A king', date: '2026-11-20', s: [
     { t: 'Th-e k-i-ng h-a-s a c-r-ow-n.', pic: '👑', type: 'Retrieval', q: 'What does the king have?', o: ['👑 a crown', '🐶 a dog', '🚲 a bike'], ev: ['crown'] },
     { t: 'Th-e c-r-ow-n i-s g-o-l-d.', pic: '👑', type: 'Retrieval', q: 'What colour is the crown?', o: ['💛 gold', '💚 green', '💙 blue'], ev: ['gold'] },
     { t: 'H-e s-i-t-s o-n a th-r-o_e-n.', pic: '💺', type: 'Retrieval', q: 'Where does he sit?', o: ['💺 on a throne', '🛁 in a bath', '🌳 up a tree'], ev: ['throne'] },
     { t: 'A qu-ee-n i-s n-e-x-t t-o h-i-m.', pic: '👸', type: 'Retrieval', q: 'Who is next to him?', o: ['👸 a queen', '🐱 a cat', '👨‍🍳 a cook'], ev: ['queen'] },
     { t: 'Th-ey w-a_e-v t-o th-e c-r-ow-d.', pic: '👋', type: 'Retrieval', q: 'What do they do?', o: ['👋 wave', '😴 sleep', '🏊 swim'], ev: ['wave'] }
   ] },
-  { id: 'MAH-MON-2', title: 'The palace', date: '2026-11-25', s: [
+  { id: 'MAH-MON-2', title: 'The palace', date: '2026-11-24', s: [
     { t: 'Th-e k-i-ng l-i-ve-s i-n a p-a-l-a-ce.', pic: '🏰', type: 'Retrieval', q: 'Where does the king live?', o: ['🏰 in a palace', '⛺ in a tent', '🚢 on a ship'], ev: ['palace'] },
     { t: 'Th-e p-a-l-a-ce i-s b-i-g.', pic: '🏰', type: 'Yes or no', q: 'Is the palace big?', o: ['✅ yes', '❌ no'], ev: ['big'] },
     { t: 'I-t h-a-s a l-o-ng h-a-ll.', pic: '🚪', type: 'Retrieval', q: 'What does it have?', o: ['🚪 a long hall', '🏊 a pool', '🌳 a big tree'], ev: ['hall'] },
     { t: 'W-e s-ee a f-ea-s-t.', pic: '🍗', type: 'Retrieval', q: 'What do we see?', o: ['🍗 a feast', '🚗 a car', '📚 a book'], ev: ['feast'] },
     { t: 'Th-e f-oo-d i-s g-oo-d.', pic: '😋', type: 'Yes or no', q: 'Is the food good?', o: ['✅ yes', '❌ no'], ev: ['good'] }
   ] },
-  { id: 'MAH-MON-3', title: 'The queen', date: '2026-11-26', s: [
+  { id: 'MAH-MON-3', title: 'The queen', date: '2026-11-25', s: [
     { t: 'Th-e qu-ee-n r-i_e-d-s a h-or-se.', pic: '🐴', type: 'Retrieval', q: 'What does the queen ride?', o: ['🐴 a horse', '🚲 a bike', '🚌 a bus'], ev: ['horse'] },
     { t: 'Sh-e h-a-s a l-o-ng d-r-e-ss.', pic: '👗', type: 'Retrieval', q: 'What does she have?', o: ['👗 a long dress', '👟 shoes', '🧢 a cap'], ev: ['dress'] },
     { t: 'H-er c-oa-t i-s r-e-d.', pic: '🧥', type: 'Retrieval', q: 'What colour is her coat?', o: ['❤️ red', '💚 green', '⚪ white'], ev: ['red'] },
     { t: 'P-eo-p-le c-l-a-p a-n-d ch-ee-r.', pic: '👏', type: 'Retrieval', q: 'What do people do?', o: ['👏 clap and cheer', '😴 sleep', '🏃 run away'], ev: ['clap', 'cheer'] },
     { t: 'Th-e qu-ee-n s-m-i_e-l-s.', pic: '😊', type: 'Retrieval', q: 'How does the queen feel?', o: ['😊 happy', '😢 sad', '😠 cross'], ev: ['smiles'] }
   ] },
-  { id: 'MAH-MON-4', title: 'Bristol gets ready', date: '2026-11-27', s: [
+  { id: 'MAH-MON-4', title: 'Bristol gets ready', date: '2026-11-26', s: [
     { t: 'Th-e qu-ee-n w-i-ll c-o-m-e t-o B-r-i-s-t-o-l.', pic: '👸', type: 'Retrieval', q: 'Where will the queen come?', o: ['🏙️ to Bristol', '🏝️ to an island', '🌙 to the moon'], ev: ['bristol'] },
     { t: 'M-e-n p-ai-n-t th-e g-a_e-t-s.', pic: '🎨', type: 'Retrieval', q: 'What do the men paint?', o: ['🚪 the gates', '🚗 the cars', '🐶 the dogs'], ev: ['gates'] },
     { t: 'Th-e c-r-o-ss i-s g-o-l-d.', pic: '✨', type: 'Retrieval', q: 'What colour is the cross?', o: ['💛 gold', '💚 green', '💜 purple'], ev: ['gold'] },
@@ -554,6 +597,251 @@ var MAH_PASSAGES = [
     { t: 'B-r-i-s-t-o-l g-i-ve-s h-er a g-i-f-t.', pic: '🎁', type: 'Retrieval', q: 'What does Bristol give her?', o: ['🎁 a gift', '🐶 a dog', '🚗 a car'], ev: ['gift'] }
   ] }
 ];
+
+// Extra question sets on the same text: [Think deeper, Challenge]. order = events in the right order.
+var MORE = {
+  'OMS-1': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Finn crept down the steps.', 'A pink glow spread across the sky.', 'The first fisherman arrived.'] },
+    { type: 'Inference', q: 'What time of day is it at the start of the passage?', o: ['very early in the morning', 'the middle of the day', 'late at night'], ev: ['before', 'sun', 'up'], why: 'The sun was not up yet.' },
+    { type: 'Vocabulary', q: "Tap the word that means 'very quiet'.", tap: ['silent'] },
+    { type: 'Inference', q: 'How do you think Finn felt in the harbour so early?', o: ['calm and curious', 'angry and grumpy', 'scared and upset'], ev: ['crept', 'careful'], why: 'He moved quietly and carefully through the peaceful harbour.' },
+    { type: 'Retrieval', q: 'What colour was the harbour at the end?', o: ['golden', 'grey', 'pink'], ev: ['golden'] }
+  ], [
+    { type: 'Author choice', q: "Why did the author say the boats were 'stretching after a long sleep'?", o: ['to make the boats seem like they were waking up with the day', 'to show the boats were broken', 'to tell us the boats were tired of fishing'], ev: ['stretching', 'sleep'] },
+    { type: 'Inference', q: 'How does the light change through the passage?', o: ['It goes from dark, to pale pink, to golden.', 'It goes from golden to dark.', 'It stays dark all the time.'], ev: ['pale', 'pink', 'golden'] },
+    { type: 'Evidence', q: 'Tap a word that tells you the water was not rough.', tap: ['gentle'] },
+    { type: 'Prediction', q: 'What do you think the fisherman will do next?', o: ['get his boat ready to go fishing', 'go back to bed', 'paint the lighthouse'], ev: ['fishing', 'fisherman'] },
+    { type: 'Summarise', q: 'Which is the best new title for this passage?', o: ['Morning comes to the harbour', 'The noisy storm', "Finn's lost shell"] }
+  ]],
+  'OMS-2': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['The tide went out.', 'Finn peered into a pool.', 'The crab hid under the seaweed.', 'Two tiny claws appeared.'] },
+    { type: 'Vocabulary', q: "What does 'scuttled' tell you about how the crab moved?", o: ['It moved quickly with small steps.', 'It moved slowly and heavily.', 'It floated without moving.'], ev: ['scuttled', 'sideways'] },
+    { type: 'Retrieval', q: 'How many pools did the tide leave behind?', o: ['dozens', 'only one', 'two'], ev: ['dozens'] },
+    { type: 'Evidence', q: 'Tap the word that tells you which way the crab moved.', tap: ['sideways'] },
+    { type: 'Inference', q: 'Why did Finn keep perfectly still?', o: ['so he would not scare the crab', 'because he was cold', 'because he was asleep'], ev: ['still', 'hoping'] }
+  ], [
+    { type: 'Author choice', q: "The author says the crab had 'curious eyes'. What does this suggest?", o: ['The crab was interested in Finn too.', 'The crab was angry.', 'The crab was asleep.'], ev: ['curious'] },
+    { type: 'Inference', q: 'Why did Finn choose the clearest pool?', o: ['so he could see into the water easily', 'because it was the deepest', 'because it was the warmest'], ev: ['clearest'] },
+    { type: 'True or false', q: 'True or false: Finn gave up and went home before the crab came out.', o: ['True', 'False'], a: 1, ev: ['last', 'appeared'], why: 'At last, the claws appeared, so Finn waited.' },
+    { type: 'Vocabulary', q: "'A ribbon of seaweed' means the seaweed was...", o: ['long and thin', 'round and spiky', 'hard and heavy'], ev: ['ribbon'] },
+    { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Finn waits patiently and a crab comes out to look at him.', 'Finn catches lots of fish in the sea.', 'The tide comes in and covers the rocks.'] }
+  ]],
+  'OMS-3': [[
+    { type: 'Retrieval', q: 'What did thin, wispy clouds mean?', o: ['the wind was changing', 'it would snow', 'it was night time'], ev: ['wind', 'changing'] },
+    { type: 'Inference', q: 'Who taught Finn how to read the clouds?', o: ['Grandad', 'his teacher', 'a fisherman'], ev: ['grandad', 'said'] },
+    { type: 'Evidence', q: 'Tap the word that tells you where Finn was lying.', tap: ['grass'] },
+    { type: 'Vocabulary', q: "Clouds that look like 'cotton wool' are...", o: ['soft, white and fluffy', 'dark and stormy', 'thin and wispy'], ev: ['cotton', 'wool'] },
+    { type: 'Inference', q: 'Why did Finn know today would be perfect?', o: ['The clouds were fluffy and white.', 'The wind was changing.', 'It was raining.'], ev: ['cotton', 'wool', 'perfect'] }
+  ], [
+    { type: 'Author choice', q: "Why does Grandad say clouds are 'like a map'?", o: ['They help you work out what will happen next.', 'They are drawn on paper.', 'They show where the roads are.'], ev: ['map', 'told'] },
+    { type: 'Inference', q: 'Would today be a good day for sailing?', o: ['Yes, because it is a perfect day.', 'No, because the wind is changing.', 'No, because it is too dark.'], ev: ['perfect'] },
+    { type: 'True or false', q: 'True or false: Grandad thought fluffy white clouds meant bad weather.', o: ['True', 'False'], a: 1, ev: ['fine'], why: 'They meant a fine day.' },
+    { type: 'Vocabulary', q: "Tap the word that is the opposite of 'thick'.", tap: ['thin'] },
+    { type: 'Summarise', q: 'What is the main idea of this passage?', o: ['Clouds can tell you about the weather.', 'Finn does not like clouds.', 'Grandad lost his map.'] }
+  ]],
+  'OMS-4': [[
+    { type: 'Retrieval', q: 'Where was the lighthouse?', o: ['at the end of the long stone pier', 'in the middle of the town', 'on top of a hill'], ev: ['end', 'pier'] },
+    { type: 'Vocabulary', q: "The beam was 'like a giant torch'. This tells us the light was...", o: ['big and bright', 'small and dim', 'green and flashing'], ev: ['giant', 'torch', 'bright'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the rocks could not be seen.', tap: ['hidden'] },
+    { type: 'Inference', q: 'When did Finn count the flashes?', o: ['at bedtime', 'at breakfast', 'at lunchtime'], ev: ['before', 'asleep'] },
+    { type: 'Inference', q: 'Why did the flashes help Finn fall asleep?', o: ['The same calm pattern made him feel relaxed.', 'They were very loud.', 'They woke him up.'], ev: ['steady', 'rhythm', 'safe'] }
+  ], [
+    { type: 'Author choice', q: "Why do you think the author wrote 'One, two, three...'?", o: ['to show Finn counting the flashes', "to tell us Finn's age", 'to start a race'], ev: ['one', 'two', 'three'] },
+    { type: 'Inference', q: 'What might happen to a boat if the lighthouse stopped working?', o: ['It could hit the hidden rocks.', 'It would go faster.', 'It would turn into a car.'], ev: ['warned', 'sharp', 'rocks'] },
+    { type: 'Vocabulary', q: "What does 'steady' mean here?", o: ['the same each time', 'very fast', 'getting louder'], ev: ['steady'] },
+    { type: 'True or false', q: 'True or false: the lighthouse beam shines in the daytime.', o: ['True', 'False'], a: 1, ev: ['every', 'night'], why: 'It says every night.' },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ['The light that keeps sailors safe', 'Finn goes swimming', 'The broken torch'] }
+  ]],
+  'OMS-5': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['The beach emptied of people.', 'The sun touched the edge of the sea.', 'Grandad said it was the best painting.'] },
+    { type: 'Vocabulary', q: "What does 'remained' mean?", o: ['stayed', 'ran away', 'fell asleep'], ev: ['remained', 'only'] },
+    { type: 'Evidence', q: 'Tap the word that tells you how the sun moved.', tap: ['dipped'] },
+    { type: 'Inference', q: 'Why do you think the beach emptied?', o: ['It was getting late, so people went home.', 'A shark arrived.', 'It started to snow.'], ev: ['afternoon', 'faded'] },
+    { type: 'Retrieval', q: 'What were the streaks of colour like?', o: ['ribbons', 'fire', 'rain'], ev: ['ribbons'] }
+  ], [
+    { type: 'Inference', q: 'How do you think Grandad felt watching the sunset?', o: ['happy and amazed', 'bored', 'worried'], ev: ['smiled', 'best'] },
+    { type: 'Author choice', q: 'Why does the author compare the colours to ribbons?', o: ['to help us picture long, bright stripes across the sky', 'because Grandad was wearing ribbons', 'to show the sky was falling'], ev: ['ribbons', 'streaks'] },
+    { type: 'True or false', q: 'True or false: lots of people stayed to watch the sunset.', o: ['True', 'False'], a: 1, ev: ['only', 'emptied'], why: 'Only Finn and Grandad stayed.' },
+    { type: 'Prediction', q: 'What do you think Finn and Grandad will do next?', o: ['pack up the blanket and go home as it gets dark', 'go for a swim in the dark', 'start building a boat'], ev: ['dipped'] },
+    { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Finn and Grandad enjoy a beautiful sunset together.', 'Grandad paints a picture of the beach.', 'Finn gets lost on the beach.'] }
+  ]],
+  'OMS-6': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Finn collected things from the shed.', 'Finn hammered the wood together.', 'Finn tied the sail to the pole.', 'Finn grinned at his boat.'] },
+    { type: 'Retrieval', q: 'What did Finn use to make the sail?', o: ['a faded blue sheet', 'old rope', 'driftwood'], ev: ['sheet', 'sail'] },
+    { type: 'Evidence', q: 'Tap the word that tells you Finn was very happy at the end.', tap: ['grinned'] },
+    { type: 'Inference', q: "Why did Finn's hands ache?", o: ['He had been hammering for a long time.', 'He fell over.', 'The water was cold.'], ev: ['hammering', 'ached'] },
+    { type: 'Vocabulary', q: "What is 'driftwood'?", o: ['wood washed up by the sea', 'wood from a new shop', 'a type of tree'], ev: ['driftwood'] }
+  ], [
+    { type: 'Inference', q: 'How does Finn feel about building the boat on his own?', o: ['proud', 'scared', 'bored'], ev: ['grinned', 'himself'] },
+    { type: 'Author choice', q: "Why did the author write 'all by himself'?", o: ['to show Finn did it without help', 'to show Finn was lonely', 'to show Grandad built it'], ev: ['himself'] },
+    { type: 'Prediction', q: 'What do you think Finn will do with the boat?', o: ['imagine sailing to where the ocean meets the sky', 'sell it at the shop', 'throw it away'], ev: ['ocean', 'meets', 'sky'] },
+    { type: 'True or false', q: 'True or false: Finn worked carelessly and quickly.', o: ['True', 'False'], a: 1, ev: ['carefully'], why: 'It says he hammered carefully.' },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ["Finn's big project", 'The lost rope', 'A trip to the shop'] }
+  ]],
+  'MON-1': [[
+    { type: 'Retrieval', q: 'Who makes the laws today?', o: ['the government', 'the king', 'the queen'], ev: ['government'] },
+    { type: 'Vocabulary', q: "What does 'crowned' mean?", o: ['had a crown put on their head', 'was given a new name', 'went on a journey'], ev: ['crowned', 'crown', 'placed'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the crown was put on gently.', tap: ['carefully'] },
+    { type: 'Inference', q: "How was a monarch's power in the past different from today?", o: ['They had more power in the past.', 'They have more power today.', 'Nothing has changed.'], ev: ['past', 'enormous', 'today'] },
+    { type: 'True or false', q: 'True or false: our king still opens Parliament.', o: ['True', 'False'], a: 0, ev: ['opens', 'parliament'] }
+  ], [
+    { type: 'Inference', q: 'Why do you think the crown is placed carefully?', o: ['It is precious and the ceremony is important.', 'It might bite.', 'It is made of paper.'], ev: ['carefully', 'special'] },
+    { type: 'Vocabulary', q: 'Tap the word that means a special event with traditions.', tap: ['ceremony'] },
+    { type: 'Inference', q: 'When does a coronation happen?', o: ['when a new monarch begins', 'every day', 'every birthday'], ev: ['new'] },
+    { type: 'Retrieval', q: 'What is the crown made of?', o: ['gold', 'wood', 'glass'], ev: ['gold'] },
+    { type: 'Summarise', q: 'What is this passage mostly about?', o: ['what monarchs are and how they are crowned', 'how to make a crown', 'a king going on holiday'] }
+  ]],
+  'MON-2': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Henry became king.', 'Henry built warships and palaces.', 'People still remember him today.'] },
+    { type: 'Evidence', q: 'Tap a word that names something Henry loved.', tap: ['music', 'jousting', 'feasts'] },
+    { type: 'Vocabulary', q: "What is a 'navy'?", o: ["a country's ships and sailors", 'a type of palace', 'a royal feast'], ev: ['warships', 'navy'] },
+    { type: 'Inference', q: "What does 'rich tapestries' tell you about the palaces?", o: ['They were full of expensive, beautiful things.', 'They were cold and empty.', 'They were small cottages.'], ev: ['rich', 'tapestries'] },
+    { type: 'Retrieval', q: 'Which country was Henry king of?', o: ['England', 'France', 'Spain'], ev: ['england'] }
+  ], [
+    { type: 'Inference', q: 'Was Henry young or old when he became king?', o: ['young, because he was just seventeen', 'old, because he was ninety', 'We cannot tell.'], ev: ['seventeen', 'young'] },
+    { type: 'Author choice', q: "Why does the author write 'just seventeen'?", o: ['to show seventeen is very young to be king', 'to show he was late', 'to show he was tall'], ev: ['just'] },
+    { type: 'True or false', q: "True or false: Henry made England's navy weaker.", o: ['True', 'False'], a: 1, ev: ['stronger'], why: 'His navy grew stronger than ever before.' },
+    { type: 'Vocabulary', q: "What is 'jousting'?", o: ['knights on horses charging at each other with long poles', 'a kind of dance', 'a type of cake'], ev: ['jousting'], why: 'Jousting was a sport for knights on horseback.' },
+    { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Henry VIII was a powerful king who loved grand things.', 'Henry VIII was a poor farmer.', 'Henry VIII hated music.'] }
+  ]],
+  'MON-3': [[
+    { type: 'Retrieval', q: 'How many languages could Elizabeth speak?', o: ['several', 'one', 'none'], ev: ['several'] },
+    { type: 'Evidence', q: 'Tap a word that describes Elizabeth.', tap: ['clever', 'determined'] },
+    { type: 'Inference', q: 'Why did towns spend so much money?', o: ['They wanted to impress the queen.', 'They had to pay a fine.', 'They were building schools.'], ev: ['huge', 'ready'] },
+    { type: 'Vocabulary', q: "What does 'ordinary people' mean?", o: ['everyday people, not kings or queens', 'very rich people', 'soldiers'], ev: ['ordinary'] },
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Elizabeth became queen.', 'Elizabeth travelled around the country.', 'Elizabeth visited Bristol.'] }
+  ], [
+    { type: 'Inference', q: "What does 'it was Bristol's turn' tell you?", o: ['The queen had visited other towns before Bristol.', 'Bristol was the first town ever.', 'Bristol did not want her.'], ev: ["bristol's", 'turn'] },
+    { type: 'Inference', q: 'Why would speaking several languages help a queen?', o: ['She could talk to people from other countries.', 'She could sing louder.', 'She could ride faster.'], ev: ['languages'] },
+    { type: 'True or false', q: "True or false: Elizabeth was Henry VIII's son.", o: ['True', 'False'], a: 1, ev: ['daughter'], why: 'She was his daughter.' },
+    { type: 'Author choice', q: 'Tap the word that shows Elizabeth did not give up easily.', tap: ['determined'] },
+    { type: 'Prediction', q: 'What do you think Bristol will do?', o: ['make the city look its best', 'hide from the queen', 'close the city gates'], ev: ['welcome'] }
+  ]],
+  'MON-4': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['People heard the queen was coming.', 'Workers painted the gates.', 'The city gave Elizabeth a gift.'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the streets were wet and dirty.', tap: ['muddy'] },
+    { type: 'Retrieval', q: 'How long did the visit last?', o: ['a whole week', 'one hour', 'a year'], ev: ['whole', 'week'] },
+    { type: 'Vocabulary', q: "What does 'prepare' mean?", o: ['get ready', 'go to sleep', 'run away'], ev: ['prepare'] },
+    { type: 'Inference', q: 'Why did they cover the High Cross in gold?', o: ['to make it look special for the queen', 'to keep it warm', 'to hide it'], ev: ['shining', 'gold'] }
+  ], [
+    { type: 'Inference', q: 'Why do you think Bristol never forgot the visit?', o: ['It was a huge, exciting event.', 'It was boring.', 'It rained all week.'], ev: ['never', 'forgot'] },
+    { type: 'Author choice', q: "Why did the author use the word 'rushed'?", o: ['to show people hurried because there was lots to do', 'to show people were sleepy', 'to show people were lost'], ev: ['rushed'] },
+    { type: 'True or false', q: "True or false: the queen's horses slipped in the mud.", o: ['True', 'False'], a: 1, ev: ['not', 'slip'], why: 'The sand stopped them slipping.' },
+    { type: 'Retrieval', q: 'What was inside the purse?', o: ['gold coins', 'sand', 'paint'], ev: ['coins'] },
+    { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Bristol worked hard to welcome the queen.', 'The queen did not like Bristol.', 'Bristol built a new castle.'] }
+  ]],
+  // earlier stage passages: tap the word, picture questions, yes or no, order with pictures
+  'MAH-OMS-1': [[
+    { type: 'Find the word', q: "Tap the word 'crab'.", tap: ['crab'] },
+    { type: 'Retrieval', q: 'What is on the rock?', o: ['🦀 a crab', '🐟 a fish', '⛵ a boat'], ev: ['crab', 'rock'] },
+    { type: 'Yes or no', q: 'Is the sail red?', o: ['✅ yes', '❌ no'], ev: ['red'] },
+    { type: 'Find the word', q: "Tap the word 'sun'.", tap: ['sun'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['☀️ The sun is hot.', '🦀 A crab is on a rock.', '🐟 Fish swim.'] },
+    { type: 'Find the word', q: "Tap the word 'boat'.", tap: ['boat'] },
+    { type: 'Retrieval', q: 'Where do fish swim?', o: ['🌊 in the sea', '🌳 in a tree', '🏠 in a house'], ev: ['sea'] },
+    { type: 'Yes or no', q: 'Is the sea deep?', o: ['✅ yes', '❌ no'], ev: ['deep'] }
+  ]],
+  'MAH-OMS-2': [[
+    { type: 'Find the word', q: "Tap the word 'pool'.", tap: ['pool'] },
+    { type: 'Retrieval', q: 'What is pink?', o: ['⭐ the starfish', '🦀 the crab', '🐚 the shell'], ev: ['starfish', 'pink'] },
+    { type: 'Yes or no', q: 'Is the tide in?', o: ['✅ yes', '❌ no'], a: 1, ev: ['out'] },
+    { type: 'Find the word', q: "Tap the word 'shell'.", tap: ['shell'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🏖️ The tide is out.', '⭐ A starfish is pink.', '🐚 I see a shell.'] },
+    { type: 'Find the word', q: "Tap the word 'stone'.", tap: ['stone'] },
+    { type: 'Retrieval', q: 'Where is the shell?', o: ['👣 by my foot', '🌳 up a tree', '☁️ in the sky'], ev: ['foot'] },
+    { type: 'Yes or no', q: 'Does the crab hide?', o: ['✅ yes', '❌ no'], ev: ['hides'] }
+  ]],
+  'MAH-OMS-3': [[
+    { type: 'Find the word', q: "Tap the word 'bird'.", tap: ['bird'] },
+    { type: 'Retrieval', q: 'What colour are the clouds?', o: ['⚪ white', '🖤 black', '💚 green'], ev: ['white'] },
+    { type: 'Yes or no', q: 'Does the bird fly high?', o: ['✅ yes', '❌ no'], ev: ['high'] },
+    { type: 'Find the word', q: "Tap the word 'rain'.", tap: ['rain'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['☁️ The clouds are white.', '🐦 A bird flies high.', '🌧️ Rain falls down.'] },
+    { type: 'Find the word', q: "Tap the word 'wind'.", tap: ['wind'] },
+    { type: 'Retrieval', q: 'Where does the rain fall?', o: ['🏘️ on the town', '🌙 on the moon', '🚢 on a ship'], ev: ['town'] },
+    { type: 'Yes or no', q: 'Do I look down?', o: ['✅ yes', '❌ no'], a: 1, ev: ['up'] }
+  ]],
+  'MAH-OMS-4': [[
+    { type: 'Find the word', q: "Tap the word 'night'.", tap: ['night'] },
+    { type: 'Retrieval', q: 'Who lives at the top?', o: ['👨 a man', '🐶 a dog', '🐦 a bird'], ev: ['man'] },
+    { type: 'Yes or no', q: 'Is the light bright?', o: ['✅ yes', '❌ no'], ev: ['bright'] },
+    { type: 'Find the word', q: "Tap the word 'ships'.", tap: ['ships'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['💡 The light is bright.', '🚢 Ships keep away.', '👂 He can hear the sea.'] },
+    { type: 'Find the word', q: "Tap the word 'top'.", tap: ['top'] },
+    { type: 'Retrieval', q: 'What can the man hear?', o: ['🌊 the sea', '🎵 music', '🐶 a dog'], ev: ['sea'] },
+    { type: 'Yes or no', q: 'Do ships go near the rocks?', o: ['✅ yes', '❌ no'], a: 1, ev: ['away'] }
+  ]],
+  'MAH-OMS-5': [[
+    { type: 'Find the word', q: "Tap the word 'moon'.", tap: ['moon'] },
+    { type: 'Retrieval', q: 'What does Grandad have?', o: ['☕ a cup of tea', '🍦 an ice cream', '🍕 a pizza'], ev: ['tea'] },
+    { type: 'Yes or no', q: 'Does the sky turn orange?', o: ['✅ yes', '❌ no'], ev: ['orange'] },
+    { type: 'Find the word', q: "Tap the word 'sand'.", tap: ['sand'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🌅 The sun goes down.', '🏖️ We sit on the sand.', '🌙 The moon comes out.'] },
+    { type: 'Find the word', q: "Tap the word 'tea'.", tap: ['tea'] },
+    { type: 'Retrieval', q: 'Where do we sit?', o: ['🏖️ on the sand', '🌊 in the sea', '🚗 in a car'], ev: ['sand'] },
+    { type: 'Yes or no', q: 'Does the sun go up?', o: ['✅ yes', '❌ no'], a: 1, ev: ['down'] }
+  ]],
+  'MAH-OMS-6': [[
+    { type: 'Find the word', q: "Tap the word 'boat'.", tap: ['boat'] },
+    { type: 'Retrieval', q: 'What colour is the sail?', o: ['💙 blue', '❤️ red', '💛 yellow'], ev: ['blue'] },
+    { type: 'Yes or no', q: 'Is Finn happy?', o: ['✅ yes', '❌ no'], ev: ['happy'] },
+    { type: 'Find the word', q: "Tap the word 'rope'.", tap: ['rope'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['⛵ Finn makes a boat.', '💙 The sail is blue.', '😊 Finn is happy.'] },
+    { type: 'Find the word', q: "Tap the word 'wood'.", tap: ['wood'] },
+    { type: 'Retrieval', q: 'What does the boat do on the water?', o: ['🌊 it floats', '🔥 it burns', '🏃 it runs'], ev: ['floats'] },
+    { type: 'Yes or no', q: 'Is Finn sad?', o: ['✅ yes', '❌ no'], a: 1, ev: ['happy'] }
+  ]],
+  'MAH-MON-1': [[
+    { type: 'Find the word', q: "Tap the word 'king'.", tap: ['king'] },
+    { type: 'Retrieval', q: 'What is gold?', o: ['👑 the crown', '👸 the queen', '💺 the throne'], ev: ['crown', 'gold'] },
+    { type: 'Yes or no', q: 'Does the king sit on a throne?', o: ['✅ yes', '❌ no'], ev: ['throne'] },
+    { type: 'Find the word', q: "Tap the word 'queen'.", tap: ['queen'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['👑 The king has a crown.', '💺 He sits on a throne.', '👋 They wave.'] },
+    { type: 'Find the word', q: "Tap the word 'crowd'.", tap: ['crowd'] },
+    { type: 'Retrieval', q: 'Who is next to the king?', o: ['👸 a queen', '🐶 a dog', '👨‍🍳 a cook'], ev: ['queen'] },
+    { type: 'Yes or no', q: 'Is the crown green?', o: ['✅ yes', '❌ no'], a: 1, ev: ['gold'] }
+  ]],
+  'MAH-MON-2': [[
+    { type: 'Find the word', q: "Tap the word 'palace'.", tap: ['palace'] },
+    { type: 'Retrieval', q: 'Where does the king live?', o: ['🏰 in a palace', '⛺ in a tent', '🏠 in a small house'], ev: ['palace'] },
+    { type: 'Yes or no', q: 'Is the palace small?', o: ['✅ yes', '❌ no'], a: 1, ev: ['big'] },
+    { type: 'Find the word', q: "Tap the word 'food'.", tap: ['food'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🏰 The king lives in a palace.', '🚪 It has a long hall.', '🍗 We see a feast.'] },
+    { type: 'Find the word', q: "Tap the word 'hall'.", tap: ['hall'] },
+    { type: 'Retrieval', q: 'What do we see?', o: ['🍗 a feast', '🚲 a bike', '📺 a TV'], ev: ['feast'] },
+    { type: 'Yes or no', q: 'Is the food good?', o: ['✅ yes', '❌ no'], ev: ['good'] }
+  ]],
+  'MAH-MON-3': [[
+    { type: 'Find the word', q: "Tap the word 'horse'.", tap: ['horse'] },
+    { type: 'Retrieval', q: 'What colour is her coat?', o: ['❤️ red', '💙 blue', '💚 green'], ev: ['red'] },
+    { type: 'Yes or no', q: 'Do people clap?', o: ['✅ yes', '❌ no'], ev: ['clap'] },
+    { type: 'Find the word', q: "Tap the word 'dress'.", tap: ['dress'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🐴 The queen rides a horse.', '👏 People clap and cheer.', '😊 The queen smiles.'] },
+    { type: 'Find the word', q: "Tap the word 'coat'.", tap: ['coat'] },
+    { type: 'Retrieval', q: 'What does the queen ride?', o: ['🐴 a horse', '🚌 a bus', '🚲 a bike'], ev: ['horse'] },
+    { type: 'Yes or no', q: 'Is the dress short?', o: ['✅ yes', '❌ no'], a: 1, ev: ['long'] }
+  ]],
+  'MAH-MON-4': [[
+    { type: 'Find the word', q: "Tap the word 'gates'.", tap: ['gates'] },
+    { type: 'Retrieval', q: 'What do they put on the road?', o: ['🏖️ sand', '💧 water', '🍰 cake'], ev: ['sand'] },
+    { type: 'Yes or no', q: 'Is the cross gold?', o: ['✅ yes', '❌ no'], ev: ['gold'] },
+    { type: 'Find the word', q: "Tap the word 'gift'.", tap: ['gift'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['👸 The queen will come.', '🎨 Men paint the gates.', '🎁 Bristol gives her a gift.'] },
+    { type: 'Find the word', q: "Tap the word 'road'.", tap: ['road'] },
+    { type: 'Retrieval', q: 'What does Bristol give her?', o: ['🎁 a gift', '🐶 a dog', '🚗 a car'], ev: ['gift'] },
+    { type: 'Yes or no', q: 'Do men paint the gates?', o: ['✅ yes', '❌ no'], ev: ['paint'] }
+  ]]
+};
 
 /* ---------------- adults panel (press and hold the title, or tap it 5 times) ---------------- */
 var adults = document.getElementById('adults'), holdT = null, taps = 0, tapT = null, title = document.getElementById('title');
