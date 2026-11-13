@@ -25,6 +25,7 @@ header { position: sticky; top: 0; z-index: 10; display: flex; align-items: cent
 header h1 { margin: 0; font-size: 26px; font-weight: normal; flex: 0 0 auto; }
 #whoBox { display: none; align-items: center; gap: 8px; }
 #who { background: #fff; color: var(--magenta); border-radius: 999px; padding: 6px 18px; font-size: 26px; }
+#pend { display: none; background: #ffd84d; color: #1f2430; border-radius: 999px; padding: 4px 12px; font-size: 17px; white-space: nowrap; }
 #notMe { border: 2px solid #fff; background: transparent; color: #fff; border-radius: 999px; padding: 4px 12px; font-size: 17px; }
 #dots { display: flex; gap: 6px; margin-left: auto; }
 #dots span { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,.35); }
@@ -79,6 +80,9 @@ h2 { font-size: 30px; font-weight: normal; margin: 0 0 14px; }
 .answerRow { min-height: 96px; border: 3px dashed #d5c7d0; border-radius: 18px; padding: 12px; display: flex; flex-wrap: wrap; gap: 10px;
   align-items: center; justify-content: center; margin: 10px 0 18px; background: #fff; }
 .answerRow.okRow { border-color: var(--ok); border-style: solid; background: var(--ok-soft); }
+.answerRow .tile { touch-action: none; }
+.tile.dragging { position: relative; z-index: 5; box-shadow: 0 10px 20px rgba(0,0,0,.25); }
+.rowHint { text-align: center; color: var(--muted); font-size: 19px; margin: -10px 0 14px; min-height: 26px; }
 .pool { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; min-height: 70px; }
 .chip { display: inline-block; border-radius: 10px; padding: 2px 10px; margin: 2px; }
 /* fix and missing rows */
@@ -86,17 +90,18 @@ h2 { font-size: 30px; font-weight: normal; margin: 0 0 14px; }
 .fw { border: 0; background: transparent; padding: 6px 4px; border-radius: 10px; font-size: 32px; }
 .fw.tappable { background: #f4eef5; }
 .fw.capOn { background: #ead9f3; }
-.gap { border: 0; width: 38px; height: 54px; border-radius: 12px; background: transparent; position: relative; padding: 0; }
-.gap::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+.gap:active { background: var(--magenta-soft); }
+.gap { border: 0; width: 50px; height: 62px; border-radius: 12px; background: transparent; position: relative; padding: 0; }
+.gap::after { content: ""; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%;
   border: 2px dashed #cbb7c6; }
 .gap.on::after { width: 14px; height: 14px; margin: 2px 0 0 -7px; border: 0; background: var(--ink); }
 .gap.right::after { background: var(--ok); }
 .gap.wrong::after { background: var(--warn); }
 .gap.missed::after { border: 3px solid var(--ok); background: transparent; width: 16px; height: 16px; margin: 1px 0 0 -8px; }
-.gap.slotPick { width: 46px; }
-.gap.slotPick::after { width: 6px; height: 34px; margin: -17px 0 0 -3px; border-radius: 3px; border: 0; background: #e3d6e0; }
-.gap.slotPick.right::after { background: var(--ok); width: 8px; }
-.gap.slotPick.wrong::after { background: var(--warn); width: 8px; }
+.gap.slotPick { width: 58px; }
+.gap.slotPick::after { width: 8px; height: 38px; margin: -19px 0 0 -4px; border-radius: 3px; border: 0; background: #e3d6e0; }
+.gap.slotPick.right::after { background: var(--ok); }
+.gap.slotPick.wrong::after { background: var(--warn); }
 .capRight { color: var(--ok); }
 .capWrong { color: var(--warn); text-decoration: underline; }
 .lookWord { font-size: 72px; text-align: center; margin: 20px 0; letter-spacing: 2px; }
@@ -136,6 +141,7 @@ body.sb .gw { padding-bottom: 20px; }
   <h1 id="title">Build it</h1>
   <span id="whoBox"><span id="who"></span><button id="notMe" type="button">Not me</button></span>
   <div id="dots"></div>
+  <span id="pend"></span>
   <button id="sbBtn" type="button">Sound buttons</button>
 </header>
 <main id="app"></main>
@@ -248,6 +254,13 @@ function flush() {
 }
 function queue(row) { var q = outbox(); q.push(row); outbox(q); flush(); }
 setInterval(flush, 15000);
+// small marker when answers have been waiting to send for a few seconds
+var pendPrev = 0;
+setInterval(function () {
+  var n = outbox().length, p = document.getElementById('pend');
+  if (n > 0 && pendPrev > 0) { p.textContent = '⏳ ' + n + ' to send'; p.style.display = 'inline-block'; } else if (n === 0) p.style.display = 'none';
+  pendPrev = n;
+}, 3000);
 window.addEventListener('online', flush);
 
 /* ---------------- grapheme words with sound buttons ---------------- */
@@ -315,7 +328,19 @@ function home() {
 }
 
 /* ---------------- session plan ---------------- */
+// pick up where the learner left off on this iPad today (after a lock or reload)
+function saveResume(ri, ii) {
+  sset('resume:' + S.learner.name, { date: todayStr(), session: S.session, rounds: S.rounds, ri: ri, ii: ii, stickers: S.stickers });
+}
 function start(l) {
+  var r = sget('resume:' + l.name, null);
+  if (r && r.date === todayStr() && r.rounds && r.rounds[r.ri] && r.ii < r.rounds[r.ri].items.length) {
+    S = { learner: l, session: r.session, rounds: r.rounds, ri: r.ri, ii: r.ii, stage: 'items', stickers: r.stickers || [] };
+    document.body.classList.toggle('sb', !!(l.sound && sget('sb:' + l.name, false)));
+    sbBtn.classList.toggle('on', document.body.classList.contains('sb'));
+    if (r.ri === 0 && r.ii === 0) { setHeader(); ready(); return; }
+    S.round = S.rounds[S.ri]; S.roundFirst = 0; showItem(); return;
+  }
   var sid = l.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() + '-' + todayStr().replace(/-/g, '') + '-' + new Date().toTimeString().slice(0, 5).replace(':', '') + '-' + Math.random().toString(36).slice(2, 5);
   S = { learner: l, session: sid, rounds: [], ri: 0, ii: 0, stage: 'ready', stickers: [] };
   document.body.classList.toggle('sb', !!(l.sound && sget('sb:' + l.name, false)));
@@ -325,6 +350,7 @@ function start(l) {
     var m = pick(GAPS[g].mix), it = GEN[m[0]](GAPS[g]); it.gap = g; it.activity = m[0]; it.warm = true; return it;
   })) });
   l.gaps.forEach(function (g) { S.rounds.push({ gap: g, items: makeRound(g) }); });
+  saveResume(0, 0);
   setHeader(); ready();
 }
 function makeRound(gapId) {
@@ -364,7 +390,7 @@ function showItem() {
       time: new Date().toISOString() });
     if (res.first) S.roundFirst++;
     S.ii++;
-    if (S.ii < S.round.items.length) showItem(); else roundDone();
+    if (S.ii < S.round.items.length) { saveResume(S.ri, S.ii); showItem(); } else roundDone();
   });
 }
 function engineOf(it) { return it.engine; }
@@ -372,6 +398,7 @@ var STICKERS = { ocean: ['⛵', '🐚', '🦀', '🐟', '🐬', '🐙', '🌞', 
 function roundDone() {
   var enq = enquiry(), st = pick(STICKERS[enq]); S.stickers.push(st);
   var last = S.ri === S.rounds.length - 1;
+  if (last) sset('resume:' + S.learner.name, null); else saveResume(S.ri + 1, 0);
   S.stage = 'between'; setHeader();
   screen(el('div', { class: 'card center' },
     el('h2', { text: S.round.warm ? 'Warm-up done!' : 'Round complete!' }),
@@ -441,6 +468,45 @@ ENG.choose = function (it, done) {
     showEl, optBox, fb));
 };
 
+/* ---- a placed tile: drag it to change the order, tap it to send it back ---- */
+function placedTile(item, cls, onTap, onReorder, isLocked) {
+  var b = el('button', { class: cls, type: 'button' }, item.t);
+  b._item = item;
+  b.addEventListener('click', function () { if (b._dragged) { b._dragged = false; return; } if (isLocked()) return; onTap(); });
+  b.addEventListener('pointerdown', function (e) {
+    if (isLocked()) return;
+    var row = b.parentNode, sx = e.clientX, sy = e.clientY, dragging = false;
+    b._dragged = false;
+    try { b.setPointerCapture(e.pointerId); } catch (x) {}
+    function nat() { var tr = b.style.transform; b.style.transform = ''; var r = b.getBoundingClientRect(); b.style.transform = tr; return r; }
+    function move(ev) {
+      if (!dragging) {
+        if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 10) return;
+        dragging = true; b._dragged = true; b.classList.add('dragging');
+      }
+      b.style.visibility = 'hidden';
+      var under = document.elementFromPoint(ev.clientX, ev.clientY);
+      b.style.visibility = '';
+      var tile = under && under.closest ? under.closest('.tile') : null;
+      if (tile && tile !== b && tile.parentNode === row) {
+        var r = tile.getBoundingClientRect(), a = nat();
+        row.insertBefore(b, ev.clientX < r.left + r.width / 2 ? tile : tile.nextSibling);
+        var c = nat(); sx += c.left - a.left; sy += c.top - a.top;
+      }
+      b.style.transform = 'translate(' + (ev.clientX - sx) + 'px,' + (ev.clientY - sy) + 'px)';
+      if (ev.cancelable) ev.preventDefault();
+    }
+    function up() {
+      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+      b.classList.remove('dragging'); b.style.transform = '';
+      if (dragging) onReorder(Array.prototype.filter.call(row.children, function (x) { return x._item; }).map(function (x) { return x._item; }));
+    }
+    document.addEventListener('pointermove', move, { passive: false }); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+  });
+  return b;
+}
+function rowHintText(n) { return n > 1 ? '✋ Drag a tile to move it. Tap a tile to take it out.' : (n === 1 ? 'Tap a tile to take it out.' : ' '); }
+
 /* ---- build: tap tiles in order ---- */
 ENG.build = function (it, done) {
   var d = it.data, attempts = 1, firstAnswer = null;
@@ -448,12 +514,18 @@ ENG.build = function (it, done) {
   var tiles = d.parts.concat(d.extra || []).map(function (p, i) { return { t: p[0], r: p[1], id: 't' + i }; });
   tiles.push({ t: '.', r: 'stop', id: 'stop' });
   var placed = [], pool = shuffle(tiles), fb = el('div'), locked = false;
-  var row = el('div', { class: 'answerRow' }), poolBox = el('div', { class: 'pool' });
+  var row = el('div', { class: 'answerRow' }), poolBox = el('div', { class: 'pool' }), hint = el('div', { class: 'rowHint' });
   var check = el('button', { class: 'big', type: 'button', disabled: true }, 'Check');
   function draw() {
     row.innerHTML = ''; poolBox.innerHTML = '';
     if (!placed.length) row.appendChild(el('span', { class: 'muted', text: 'Tap the tiles to build your sentence' }));
-    placed.forEach(function (t) { row.appendChild(el('button', { class: 'tile r-' + t.r, type: 'button', onclick: function () { if (locked) return; placed.splice(placed.indexOf(t), 1); pool.push(t); draw(); } }, t.t)); });
+    placed.forEach(function (t) {
+      row.appendChild(placedTile(t, 'tile r-' + t.r,
+        function () { placed.splice(placed.indexOf(t), 1); pool.push(t); draw(); },
+        function (order) { placed = order; draw(); },
+        function () { return locked; }));
+    });
+    hint.textContent = locked ? ' ' : rowHintText(placed.length);
     pool.forEach(function (t) { poolBox.appendChild(el('button', { class: 'tile r-' + t.r, type: 'button', onclick: function () { if (locked) return; pool.splice(pool.indexOf(t), 1); placed.push(t); draw(); } }, t.t)); });
     check.disabled = placed.length !== target.length;
   }
@@ -463,7 +535,7 @@ ENG.build = function (it, done) {
     var ok = got.join('|') === target.join('|');
     fb.innerHTML = '';
     if (ok) {
-      locked = true; row.classList.add('okRow'); check.style.display = 'none';
+      locked = true; row.classList.add('okRow'); check.style.display = 'none'; hint.textContent = ' ';
       fb.appendChild(el('div', { class: 'feedback ok' }, attempts === 1 ? '✅ Yes! That sentence makes sense.' : '✅ You fixed it!'));
       fb.appendChild(nextBtn(done, { first: attempts === 1, answer: firstAnswer, attempts: attempts }));
     } else {
@@ -476,7 +548,7 @@ ENG.build = function (it, done) {
   screen(el('div', { class: 'card' },
     el('div', { class: 'prompt', text: d.prompt || 'Build the sentence. Add a full stop.' }),
     d.pic ? el('div', { class: 'pic', text: d.pic }) : null,
-    row, poolBox, el('div', { class: 'next' }, check), fb));
+    row, hint, poolBox, el('div', { class: 'next' }, check), fb));
 };
 
 /* ---- fix: add full stops (and capitals) ---- */
@@ -568,12 +640,25 @@ ENG.missing = function (it, done) {
 /* ---- spell: build a word from tiles (look first if d.look) ---- */
 ENG.spell = function (it, done) {
   var d = it.data, attempts = 1, firstAnswer = null, placed = [], pool = shuffle(d.pool.map(function (t, i) { return { t: t, id: i }; }));
-  var fb = el('div'), row = el('div', { class: 'answerRow' }), poolBox = el('div', { class: 'pool' }), locked = false;
+  var fb = el('div'), row = el('div', { class: 'answerRow' }), poolBox = el('div', { class: 'pool' }), hint = el('div', { class: 'rowHint' }), locked = false;
+  var peeks = 0, peekBox = el('div'), peekT = null;
+  var lookBtn = el('button', { class: 'big alt', type: 'button', style: 'font-size:22px;padding:10px 20px' }, '👀 Look again');
+  lookBtn.onclick = function () {
+    if (locked || peekT) return;
+    peeks++; peekBox.innerHTML = ''; peekBox.appendChild(el('div', { class: 'lookWord', style: 'margin:6px 0', text: d.word }));
+    peekT = setTimeout(function () { peekBox.innerHTML = ''; peekT = null; }, 3000);
+  };
   var check = el('button', { class: 'big', type: 'button', disabled: true }, 'Check');
   function draw() {
     row.innerHTML = ''; poolBox.innerHTML = '';
     if (!placed.length) row.appendChild(el('span', { class: 'muted', text: 'Tap the tiles to build the word' }));
-    placed.forEach(function (t) { row.appendChild(el('button', { class: 'tile r-letter', type: 'button', onclick: function () { if (locked) return; placed.splice(placed.indexOf(t), 1); pool.push(t); draw(); } }, t.t)); });
+    placed.forEach(function (t) {
+      row.appendChild(placedTile(t, 'tile r-letter',
+        function () { placed.splice(placed.indexOf(t), 1); pool.push(t); draw(); },
+        function (order) { placed = order; draw(); },
+        function () { return locked; }));
+    });
+    hint.textContent = locked ? ' ' : rowHintText(placed.length);
     pool.forEach(function (t) { poolBox.appendChild(el('button', { class: 'tile r-letter', type: 'button', onclick: function () { if (locked) return; pool.splice(pool.indexOf(t), 1); placed.push(t); draw(); } }, t.t)); });
     check.disabled = placed.length !== d.target.length;
   }
@@ -583,9 +668,10 @@ ENG.spell = function (it, done) {
     var ok = got.join('|') === d.target.join('|');
     fb.innerHTML = '';
     if (ok) {
-      locked = true; row.classList.add('okRow'); check.style.display = 'none';
+      locked = true; row.classList.add('okRow'); check.style.display = 'none'; hint.textContent = ' ';
       fb.appendChild(el('div', { class: 'feedback ok' }, attempts === 1 ? '✅ Yes! You spelled ' + d.word + '.' : '✅ You fixed it!'));
-      fb.appendChild(nextBtn(done, { first: attempts === 1, answer: firstAnswer, attempts: attempts }));
+      lookBtn.style.display = 'none';
+      fb.appendChild(nextBtn(done, { first: attempts === 1, answer: firstAnswer + (peeks ? ' (looked again x' + peeks + ')' : ''), attempts: attempts }));
     } else {
       fb.appendChild(el('div', { class: 'feedback no' }, '👀 It is spelled like this. Build it again.', el('div', { class: 'model' }, d.target.map(function (t) { return el('span', { class: 'chip r-letter', text: t }); }))));
       attempts++; pool = shuffle(pool.concat(placed)); placed = []; draw();
@@ -597,7 +683,7 @@ ENG.spell = function (it, done) {
       el('div', { class: 'prompt', text: d.look ? 'Now build the word.' : (d.prompt || 'Build the word.') }),
       d.pic ? el('div', { class: 'pic', text: d.pic }) : null,
       d.frame ? el('div', { class: 'show', text: d.frame }) : null,
-      row, poolBox, el('div', { class: 'next' }, check), fb));
+      peekBox, row, hint, poolBox, el('div', { class: 'next' }, check, d.look ? lookBtn : null), fb));
   }
   if (d.look) {
     var cd = el('div', { class: 'countdown', text: ' ' }), n = 4;

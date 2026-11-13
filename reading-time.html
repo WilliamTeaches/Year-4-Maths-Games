@@ -22,6 +22,12 @@ header { position: sticky; top: 0; z-index: 10; display: flex; align-items: cent
 header h1 { margin: 0; font-size: 26px; font-weight: normal; }
 #whoBox { display: none; align-items: center; gap: 8px; }
 #who { background: #fff; color: var(--magenta); border-radius: 999px; padding: 6px 18px; font-size: 26px; }
+#pend { display: none; background: #ffd84d; color: #1f2430; border-radius: 999px; padding: 4px 12px; font-size: 17px; white-space: nowrap; }
+.split .textCard { position: sticky; top: 70px; z-index: 4; max-height: 44vh; overflow-y: auto; box-shadow: 0 6px 12px rgba(0,0,0,.08); }
+@media (min-width: 900px) and (orientation: landscape) {
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  .split .textCard { top: 82px; max-height: calc(100vh - 100px); }
+}
 #notMe { border: 2px solid #fff; background: transparent; color: #fff; border-radius: 999px; padding: 4px 12px; font-size: 17px; }
 #dots { display: flex; gap: 6px; margin-left: auto; }
 #dots span { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,.35); }
@@ -92,6 +98,7 @@ body.sb .gw { padding-bottom: 20px; }
   <h1 id="title">Reading time</h1>
   <span id="whoBox"><span id="who"></span><button id="notMe" type="button">Not me</button></span>
   <div id="dots"></div>
+  <span id="pend"></span>
   <button id="sbBtn" type="button">Sound buttons</button>
 </header>
 <main id="app"></main>
@@ -166,6 +173,13 @@ function flush() {
 }
 function queue(row) { var q = outbox(); q.push(row); outbox(q); flush(); }
 setInterval(flush, 15000); window.addEventListener('online', flush);
+// small marker when answers have been waiting to send for a few seconds
+var pendPrev = 0;
+setInterval(function () {
+  var n = outbox().length, p = document.getElementById('pend');
+  if (n > 0 && pendPrev > 0) { p.textContent = '⏳ ' + n + ' to send'; p.style.display = 'inline-block'; } else if (n === 0) p.style.display = 'none';
+  pendPrev = n;
+}, 3000);
 
 /* ---------------- grapheme words (sound buttons) ---------------- */
 function parseG(ann) {
@@ -225,8 +239,14 @@ function listFor(l) { return l.sound ? MAH_PASSAGES : PASSAGES; }
 function home() {
   S = null; setHeader(); document.body.classList.remove('sb'); sbBtn.classList.remove('on');
   screen(el('div', { class: 'card center' }, el('h2', { text: 'Tap your name' }),
-    el('div', { class: 'grid' }, LEARNERS.map(function (l) { return el('button', { class: 'nameTile', type: 'button', onclick: function () { begin(l, todaysIndex(l)); } }, l.first); }))));
+    el('div', { class: 'grid' }, LEARNERS.map(function (l) { return el('button', { class: 'nameTile', type: 'button', onclick: function () { enter(l); } }, l.first); }))));
 }
+// pick up where the learner left off on this iPad today (after a lock or reload), otherwise today's text
+function enter(l) {
+  var r = sget('resume:' + l.name, null);
+  if (r && r.date === todayStr() && listFor(l)[r.idx]) begin(l, r.idx, r.set, r); else begin(l, todaysIndex(l));
+}
+function saveResume() { sset('resume:' + S.learner.name, { date: todayStr(), idx: S.idx, set: S.set, si: S.si, session: S.session }); }
 function todaysIndex(l) {
   var list = listFor(l), today = todayStr(), ov = sget('override', null);
   if (ov && ov.date === today && list[ov.i]) return ov.i;
@@ -240,14 +260,16 @@ function todaysIndex(l) {
 /* ---------------- reading a passage ---------------- */
 var SET_NAMES = { 1: 'Read and answer', 2: 'Think deeper', 3: 'Challenge' };
 var SET_ICONS = { 1: '📖', 2: '🤔', 3: '🏆' };
-function begin(l, idx, set) {
+function begin(l, idx, set, r) {
   set = set || 1;
   var P = listFor(l)[idx], extra = MORE[P.id] || [];
   if (set > 1 && !extra[set - 2]) set = 1;
   var sid = l.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() + '-R-' + todayStr().replace(/-/g, '') + '-' + new Date().toTimeString().slice(0, 5).replace(':', '') + '-' + Math.random().toString(36).slice(2, 5) + (set > 1 ? '-S' + set : '');
   S = { learner: l, session: sid, P: P, idx: idx, si: 0, set: set, items: set === 1 ? P.s : extra[set - 2] };
   var on = sget('sb:' + l.name, !!l.sound); document.body.classList.toggle('sb', on); sbBtn.classList.toggle('on', on);
-  sentence();
+  if (r && r.set === set) { S.session = r.session; S.si = Math.min(r.si || 0, S.items.length); }
+  saveResume();
+  if (S.si >= S.items.length) finished(); else sentence();
 }
 function wordSpans(line) {
   // returns [{node, norm, word, ann}] for the current sentence
@@ -273,7 +295,7 @@ function sentence() {
   var words = whole ? [].concat.apply([], P.s.map(function (x) { return wordSpans(x.t); })) : wordSpans(it.t);
   var cur = el('p', { class: whole ? 'cur whole' : 'cur' }); words.forEach(function (w, i) { if (i) cur.appendChild(document.createTextNode(' ')); cur.appendChild(w.node); });
   var prev = el('p', { class: 'prev', text: P.s.slice(0, S.si).map(function (x) { return plainOf(x.t); }).join(' ') });
-  var textCard = el('div', { class: 'card' },
+  var textCard = el('div', { class: 'card textCard' },
     el('div', { class: 'setTag', text: SET_ICONS[S.set] + ' ' + SET_NAMES[S.set] }),
     el('div', { class: 'title', text: P.title }),
     el('div', { class: 'passage' }, el('div', { class: 'txt' }, !whole && S.si ? prev : null, cur), !whole && it.pic ? el('div', { class: 'pic', text: it.pic }) : null));
@@ -284,7 +306,12 @@ function sentence() {
     answered = true; first = ok;
     fb.appendChild(el('div', { class: 'feedback ' + (ok ? 'ok' : 'no') }, ok ? '✅ Yes! Well done.' : '👀 The green answer is right.', !ok && why ? el('div', { text: why }) : null));
     if (!ok) showEvidence();
-    stuckStep();
+    // Think deeper and Challenge: ask about tricky words once, after the last question
+    if (whole && S.si < S.items.length - 1) {
+      var nb = el('div', { class: 'next' }, el('button', { class: 'big', type: 'button', onclick: function () { save(); } }, 'Next question'));
+      fb.appendChild(nb);
+      setTimeout(function () { try { nb.scrollIntoView({ behavior: 'smooth', block: 'end' }); } catch (e) {} }, 150);
+    } else stuckStep();
   }
   function stuckStep() {
     var count = el('b', { text: '' });
@@ -306,7 +333,7 @@ function sentence() {
     queue({ learner: S.learner.name, session: S.session, passage: P.id + (S.set > 1 ? ' ' + SET_NAMES[S.set] : ''), sentence: S.si + 1, qtype: it.type, first: first ? 'Correct' : 'Incorrect',
       answer: answerText, tapped: tw, sound: S.sbUsed ? 'on' : 'off',
       seconds: Math.round((Date.now() - t0) / 1000), time: new Date().toISOString() });
-    S.si++;
+    S.si++; saveResume();
     if (S.si < S.items.length) { sentence(); window.scrollTo(0, 0); } else finished();
   }
   qCard.appendChild(el('p', { class: 'q', text: it.q }));
@@ -361,7 +388,7 @@ function sentence() {
     qCard.appendChild(box);
   }
   qCard.appendChild(fb);
-  screen(textCard, qCard);
+  screen(whole ? el('div', { class: 'split' }, textCard, qCard) : [textCard, qCard]);
 }
 function finished() {
   var l = S.learner, idx = S.idx, set = S.set, P = S.P, list = listFor(l), sets = MORE[P.id] || [];
@@ -862,7 +889,7 @@ document.getElementById('aTest').onclick = function () {
   queue({ learner: 'TEST', session: 'TEST-' + Date.now(), passage: 'TEST', sentence: 0, qtype: 'test', first: 'Correct', answer: 'Test row from an iPad (delete me)', tapped: '', sound: '', seconds: 0, time: new Date().toISOString() });
   document.getElementById('aMsg').textContent = 'Test row sent. Check the Reading responses tab.';
 };
-document.getElementById('aPass').onchange = function () { sset('override', this.value === '' ? null : { date: todayStr(), i: Number(this.value) }); document.getElementById('aMsg').textContent = 'Saved for today.'; };
+document.getElementById('aPass').onchange = function () { LEARNERS.forEach(function (l) { sset('resume:' + l.name, null); }); sset('override', this.value === '' ? null : { date: todayStr(), i: Number(this.value) }); document.getElementById('aMsg').textContent = 'Saved for today.'; };
 document.getElementById('aHome').onclick = function () { adults.classList.remove('open'); home(); };
 
 document.getElementById('notMe').onclick = function () { home(); };
