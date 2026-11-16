@@ -39,6 +39,9 @@ main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
 .center { text-align: center; } .muted { color: var(--muted); }
 h2 { font-size: 30px; font-weight: normal; margin: 0 0 14px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+.nameTile .ic { display: flex; align-items: center; justify-content: center; height: 86px; font-size: 72px; line-height: 1; margin-bottom: 6px; }
+.nameTile .ic svg, #who .ic svg { vertical-align: -0.12em; }
+#who .ic { margin-right: 8px; }
 .nameTile { border: 3px solid var(--line); background: #fff; border-radius: 22px; padding: 22px 10px; font-size: 30px; }
 .picTile { border: 3px solid var(--line); background: #fff; border-radius: 22px; padding: 18px 0; font-size: 64px; line-height: 1; }
 .big { border: 0; background: var(--magenta); color: #fff; border-radius: 18px; padding: 16px 32px; font-size: 28px; box-shadow: 0 4px 0 var(--magenta-dark); }
@@ -125,17 +128,24 @@ body.sb .gw { padding-bottom: 20px; }
 var FORM = {"url": "https://docs.google.com/forms/d/e/1FAIpQLSfNEDVi4GWvFMLLEtS4v3yEiwJ2FCp9cScTZs5tpBQ3qesIAw/formResponse", "fields": {"learner": "entry.1320799495", "session": "entry.1607565800", "passage": "entry.1522486681", "sentence": "entry.2072392593", "qtype": "entry.96304366", "first": "entry.1269369674", "answer": "entry.482270548", "tapped": "entry.196507964", "sound": "entry.1196539554", "seconds": "entry.1525439196", "time": "entry.1561020559"}};
 
 var LEARNERS = [
-  { name: 'Rocco S',  first: 'Rocco',  pic: '🐬' },
-  { name: 'Kalani D', first: 'Kalani', pic: '🦋' },
-  { name: 'Leo W',    first: 'Leo',    pic: '🦁' },
-  { name: 'Munraj S', first: 'Munraj', pic: '🐢' },
-  { name: 'Mahsa N',  first: 'Mahsa',  pic: '🌸', sound: true }
+  { name: 'Rocco S',  first: 'Rhino', icon: '🦏',pic: '🐬' },
+  { name: 'Kalani D', first: 'Kangaroo', icon: '🦘',pic: '🦋' },
+  { name: 'Leo W',    first: 'F1 car', icon: '🏎️',pic: '🦁' },
+  { name: 'Munraj S', first: 'Manta ray', icon: 'svg:manta',pic: '🐢' },
+  { name: 'Mahsa N',  first: 'Monkey', icon: '🐒',pic: '🌸', sound: true }
 ];
 
 /* ---------------- helpers ---------------- */
 var STORE = 'gcR1:';
 function sget(k, d) { try { var v = localStorage.getItem(STORE + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
 function sset(k, v) { try { localStorage.setItem(STORE + k, JSON.stringify(v)); } catch (e) {} }
+// learner icons: emoji, or a drawn picture where there is no emoji (manta ray)
+var ICON_SVG = { manta: '<svg viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true"><path d="M50 96 L49 70 L51 70 Z" fill="#1d3557" stroke="#1d3557" stroke-width="2" stroke-linecap="round"/><path d="M50 30 C36 30 18 40 4 54 C20 58 34 61 43 69 L50 74 L57 69 C66 61 80 58 96 54 C82 40 64 30 50 30 Z" fill="#2f5d8a"/><path d="M50 38 C42 38 30 45 20 53 C31 55 40 58 46 64 L50 67 L54 64 C60 58 69 55 80 53 C70 45 58 38 50 38 Z" fill="#4f86b8"/><path d="M44 31 C41 24 43 19 46 21 C47 25 47 28 47 31 Z M56 31 C59 24 57 19 54 21 C53 25 53 28 53 31 Z" fill="#2f5d8a"/><circle cx="43" cy="36" r="2.4" fill="#fff"/><circle cx="57" cy="36" r="2.4" fill="#fff"/></svg>' };
+function iconNode(l, cls) {
+  var i = l.icon || '';
+  if (i.indexOf('svg:') === 0) { var s = el('span', { class: cls }); s.innerHTML = ICON_SVG[i.slice(4)]; return s; }
+  return el('span', { class: cls, text: i });
+}
 function el(tag, props) {
   var e = document.createElement(tag);
   if (props) Object.keys(props).forEach(function (k) {
@@ -227,7 +237,7 @@ sbBtn.onclick = function () {
   drawMarks(app);
 };
 function setHeader() {
-  document.getElementById('who').textContent = S ? S.learner.first : '';
+  var who = document.getElementById('who'); who.innerHTML = ''; if (S) { who.appendChild(iconNode(S.learner, 'ic')); who.appendChild(document.createTextNode(S.learner.first)); }
   document.getElementById('whoBox').style.display = S ? 'flex' : 'none';
   sbBtn.style.display = S ? 'inline-block' : 'none';
   var dots = document.getElementById('dots'); dots.innerHTML = '';
@@ -238,8 +248,8 @@ function listFor(l) { return l.sound ? MAH_PASSAGES : PASSAGES; }
 /* ---------------- names ---------------- */
 function home() {
   S = null; setHeader(); document.body.classList.remove('sb'); sbBtn.classList.remove('on');
-  screen(el('div', { class: 'card center' }, el('h2', { text: 'Tap your name' }),
-    el('div', { class: 'grid' }, LEARNERS.map(function (l) { return el('button', { class: 'nameTile', type: 'button', onclick: function () { enter(l); } }, l.first); }))));
+  screen(el('div', { class: 'card center' }, el('h2', { text: 'Tap your picture' }),
+    el('div', { class: 'grid' }, LEARNERS.map(function (l) { return el('button', { class: 'nameTile', type: 'button', onclick: function () { enter(l); } }, iconNode(l, 'ic'), l.first); }))));
 }
 // pick up where the learner left off on this iPad today (after a lock or reload), otherwise today's text
 function enter(l) {
