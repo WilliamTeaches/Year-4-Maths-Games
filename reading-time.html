@@ -132,7 +132,8 @@ var LEARNERS = [
   { name: 'Kalani D', first: 'Kangaroo', icon: '🦘',pic: '🦋' },
   { name: 'Leo W',    first: 'F1 car', icon: '🏎️',pic: '🦁' },
   { name: 'Munraj S', first: 'Manta ray', icon: 'svg:manta',pic: '🐢' },
-  { name: 'Mahsa N',  first: 'Monkey', icon: '🐒',pic: '🌸', sound: true }
+  { name: 'Mahsa N',  first: 'Monkey', icon: '🐒',pic: '🌸', sound: true },
+  { name: 'Xander D', first: 'Xeme', icon: 'svg:xeme' }
 ];
 
 /* ---------------- helpers ---------------- */
@@ -140,7 +141,7 @@ var STORE = 'gcR1:';
 function sget(k, d) { try { var v = localStorage.getItem(STORE + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
 function sset(k, v) { try { localStorage.setItem(STORE + k, JSON.stringify(v)); } catch (e) {} }
 // learner icons: emoji, or a drawn picture where there is no emoji (manta ray)
-var ICON_SVG = { manta: '<svg viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true"><path d="M50 96 L49 70 L51 70 Z" fill="#1d3557" stroke="#1d3557" stroke-width="2" stroke-linecap="round"/><path d="M50 30 C36 30 18 40 4 54 C20 58 34 61 43 69 L50 74 L57 69 C66 61 80 58 96 54 C82 40 64 30 50 30 Z" fill="#2f5d8a"/><path d="M50 38 C42 38 30 45 20 53 C31 55 40 58 46 64 L50 67 L54 64 C60 58 69 55 80 53 C70 45 58 38 50 38 Z" fill="#4f86b8"/><path d="M44 31 C41 24 43 19 46 21 C47 25 47 28 47 31 Z M56 31 C59 24 57 19 54 21 C53 25 53 28 53 31 Z" fill="#2f5d8a"/><circle cx="43" cy="36" r="2.4" fill="#fff"/><circle cx="57" cy="36" r="2.4" fill="#fff"/></svg>' };
+var ICON_SVG = { xeme: '<svg viewBox="6 30 92 62" width="1.45em" height="0.98em" aria-hidden="true"><path d="M47 72 L45 90 M57 72 L59 90" stroke="#e0566b" stroke-width="3" stroke-linecap="round"/><path d="M38 56 C42 46 60 44 78 52 L97 50 L90 58 L97 66 L78 66 C62 74 44 72 38 64 Z" fill="#ffffff" stroke="#9aa3ad" stroke-width="1.5"/><path d="M42 54 C54 44 72 46 88 56 L82 62 C70 60 54 60 44 60 Z" fill="#8a96a3"/><path d="M78 54 L94 60 L82 62 Z" fill="#1f2430"/><path d="M36 52 C34 46 40 44 44 50 L46 60 L38 62 Z" fill="#ffffff"/><circle cx="31" cy="42" r="11" fill="#2f3540"/><circle cx="28" cy="40" r="2.2" fill="#ffffff"/><circle cx="28" cy="40" r="1.1" fill="#1f2430"/><path d="M21 42 L8 44.5 L21 47 Z" fill="#1f2430"/><path d="M8 44.5 L12 43.7 L12 45.3 Z" fill="#f5c518"/></svg>', manta: '<svg viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true"><path d="M50 96 L49 70 L51 70 Z" fill="#1d3557" stroke="#1d3557" stroke-width="2" stroke-linecap="round"/><path d="M50 30 C36 30 18 40 4 54 C20 58 34 61 43 69 L50 74 L57 69 C66 61 80 58 96 54 C82 40 64 30 50 30 Z" fill="#2f5d8a"/><path d="M50 38 C42 38 30 45 20 53 C31 55 40 58 46 64 L50 67 L54 64 C60 58 69 55 80 53 C70 45 58 38 50 38 Z" fill="#4f86b8"/><path d="M44 31 C41 24 43 19 46 21 C47 25 47 28 47 31 Z M56 31 C59 24 57 19 54 21 C53 25 53 28 53 31 Z" fill="#2f5d8a"/><circle cx="43" cy="36" r="2.4" fill="#fff"/><circle cx="57" cy="36" r="2.4" fill="#fff"/></svg>' };
 function iconNode(l, cls) {
   var i = l.icon || '';
   if (i.indexOf('svg:') === 0) { var s = el('span', { class: cls }); s.innerHTML = ICON_SVG[i.slice(4)]; return s; }

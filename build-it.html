@@ -183,7 +183,8 @@ var LEARNERS = [
   { name: 'Kalani D', first: 'Kangaroo', icon: '🦘',pic: '🦋', gaps: ['KAL-1', 'KAL-2', 'KAL-3'] },
   { name: 'Leo W',    first: 'F1 car', icon: '🏎️',pic: '🦁', gaps: ['LEO-1', 'LEO-2', 'LEO-3'] },
   { name: 'Munraj S', first: 'Manta ray', icon: 'svg:manta',pic: '🐢', gaps: ['MUN-1', 'MUN-2', 'MUN-3'] },
-  { name: 'Mahsa N',  first: 'Monkey', icon: '🐒',pic: '🌸', gaps: ['MAH-1', 'MAH-2', 'MAH-3'], sound: true }
+  { name: 'Mahsa N',  first: 'Monkey', icon: '🐒',pic: '🌸', gaps: ['MAH-1', 'MAH-2', 'MAH-3'], sound: true },
+  { name: 'Xander D', first: 'Xeme', icon: 'svg:xeme', gaps: ['XAN-1', 'XAN-2', 'XAN-3'] }
 ];
 
 /* ---------------- gaps: child title, emoji and activity mix ---------------- */
@@ -202,6 +203,9 @@ var GAPS = {
   'MUN-3': { title: '-ed endings', em: '🔚', mix: [['suffix', 4], ['contraction', 2]] },
   'MAH-1': { title: 'Word and picture', em: '🖼️', mix: [['picToWord', 3], ['wordToPic', 3]] },
   'MAH-2': { title: 'Sentence builder', em: '🏗️', mix: [['mahBuild', 6]] },
+  'XAN-1': { title: 'Capital letters', em: '🔠', mix: [['fixBoth', 4], ['whichCorrect', 2]] },
+  'XAN-2': { title: '-ed endings', em: '🔚', mix: [['suffix', 4], ['contraction', 2]] },
+  'XAN-3': { title: 'Past tense', em: '⏪', mix: [['tense', 6]] },
   'MAH-3': { title: 'Sound builder', em: '🔤', mix: [['mahSpell', 6]] }
 };
 
@@ -210,7 +214,7 @@ var STORE = 'gcW1:';
 function sget(k, d) { try { var v = localStorage.getItem(STORE + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
 function sset(k, v) { try { localStorage.setItem(STORE + k, JSON.stringify(v)); } catch (e) {} }
 // learner icons: emoji, or a drawn picture where there is no emoji (manta ray)
-var ICON_SVG = { manta: '<svg viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true"><path d="M50 96 L49 70 L51 70 Z" fill="#1d3557" stroke="#1d3557" stroke-width="2" stroke-linecap="round"/><path d="M50 30 C36 30 18 40 4 54 C20 58 34 61 43 69 L50 74 L57 69 C66 61 80 58 96 54 C82 40 64 30 50 30 Z" fill="#2f5d8a"/><path d="M50 38 C42 38 30 45 20 53 C31 55 40 58 46 64 L50 67 L54 64 C60 58 69 55 80 53 C70 45 58 38 50 38 Z" fill="#4f86b8"/><path d="M44 31 C41 24 43 19 46 21 C47 25 47 28 47 31 Z M56 31 C59 24 57 19 54 21 C53 25 53 28 53 31 Z" fill="#2f5d8a"/><circle cx="43" cy="36" r="2.4" fill="#fff"/><circle cx="57" cy="36" r="2.4" fill="#fff"/></svg>' };
+var ICON_SVG = { xeme: '<svg viewBox="6 30 92 62" width="1.45em" height="0.98em" aria-hidden="true"><path d="M47 72 L45 90 M57 72 L59 90" stroke="#e0566b" stroke-width="3" stroke-linecap="round"/><path d="M38 56 C42 46 60 44 78 52 L97 50 L90 58 L97 66 L78 66 C62 74 44 72 38 64 Z" fill="#ffffff" stroke="#9aa3ad" stroke-width="1.5"/><path d="M42 54 C54 44 72 46 88 56 L82 62 C70 60 54 60 44 60 Z" fill="#8a96a3"/><path d="M78 54 L94 60 L82 62 Z" fill="#1f2430"/><path d="M36 52 C34 46 40 44 44 50 L46 60 L38 62 Z" fill="#ffffff"/><circle cx="31" cy="42" r="11" fill="#2f3540"/><circle cx="28" cy="40" r="2.2" fill="#ffffff"/><circle cx="28" cy="40" r="1.1" fill="#1f2430"/><path d="M21 42 L8 44.5 L21 47 Z" fill="#1f2430"/><path d="M8 44.5 L12 43.7 L12 45.3 Z" fill="#f5c518"/></svg>', manta: '<svg viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true"><path d="M50 96 L49 70 L51 70 Z" fill="#1d3557" stroke="#1d3557" stroke-width="2" stroke-linecap="round"/><path d="M50 30 C36 30 18 40 4 54 C20 58 34 61 43 69 L50 74 L57 69 C66 61 80 58 96 54 C82 40 64 30 50 30 Z" fill="#2f5d8a"/><path d="M50 38 C42 38 30 45 20 53 C31 55 40 58 46 64 L50 67 L54 64 C60 58 69 55 80 53 C70 45 58 38 50 38 Z" fill="#4f86b8"/><path d="M44 31 C41 24 43 19 46 21 C47 25 47 28 47 31 Z M56 31 C59 24 57 19 54 21 C53 25 53 28 53 31 Z" fill="#2f5d8a"/><circle cx="43" cy="36" r="2.4" fill="#fff"/><circle cx="57" cy="36" r="2.4" fill="#fff"/></svg>' };
 function iconNode(l, cls) {
   var i = l.icon || '';
   if (i.indexOf('svg:') === 0) { var s = el('span', { class: cls }); s.innerHTML = ICON_SVG[i.slice(4)]; return s; }
@@ -789,6 +793,12 @@ var GEN = {
     return { engine: 'choose', label: right + ': ' + s.f, data: { prompt: 'Add -ed. Which one is right?', frame: s.f, fillWord: right,
       options: [{ t: right, ok: true }, { t: wrong[0], ok: false }, { t: wrong[1], ok: false }], why: '-ed is always spelled e d, even when it sounds like t or id.' } };
   },
+  tense: function () {
+    var t = pick(TENSE), right = capIfStart(t.f, t.a);
+    return { engine: 'choose', label: t.a + ': ' + t.f, data: { prompt: 'This happened yesterday. Which word keeps it in the past?', frame: t.f, fillWord: right,
+      options: [{ t: right, ok: true }].concat(t.w.map(function (x) { return { t: capIfStart(t.f, x), ok: false }; })),
+      why: 'It already happened, so we use the past tense.' } };
+  },
   contraction: function () {
     var c = pick(CONTRACTIONS);
     return { engine: 'choose', label: c.c + ': ' + c.f, data: { prompt: 'Which one has the apostrophe in the right place?', frame: c.f, fillWord: capIfStart(c.f, c.c),
@@ -918,6 +928,29 @@ var ED = [
   { root: 'help', f: 'Finn ___ Grandad with the nets.' }, { root: 'push', f: 'Grandad ___ the boat into the sea.' },
   { root: 'cheer', f: 'The crowd ___ for the queen.' }, { root: 'paint', f: 'The workers ___ the city gates.' },
   { root: 'wait', f: 'The people ___ for the queen.' }, { root: 'visit', f: 'The queen ___ Bristol.' }
+];
+// Past tense: the sentence happened in the past; a = right word, w = wrong choices (present tense or made-up past)
+var TENSE = [
+  { f: 'Yesterday Finn ___ along the beach.', a: 'walked', w: ['walks', 'walking'] },
+  { f: 'Finn ___ in the cold sea.', a: 'swam', w: ['swims', 'swimmed'] },
+  { f: 'Finn ___ a shell on the sand.', a: 'found', w: ['finds', 'finded'] },
+  { f: 'Grandad ___ to the harbour.', a: 'went', w: ['goes', 'goed'] },
+  { f: 'Finn ___ a crab in the rock pool.', a: 'saw', w: ['sees', 'seed'] },
+  { f: 'The gulls ___ over the waves.', a: 'flew', w: ['fly', 'flied'] },
+  { f: 'Finn ___ to Grandad on the beach.', a: 'ran', w: ['runs', 'runned'] },
+  { f: 'They ___ on the blanket by the dunes.', a: 'sat', w: ['sit', 'sitted'] },
+  { f: '"Look at the sky," ___ Grandad.', a: 'said', w: ['says', 'sayed'] },
+  { f: 'Finn ___ Grandad a hug.', a: 'gave', w: ['gives', 'gived'] },
+  { f: 'The boat ___ out of the harbour.', a: 'sailed', w: ['sails', 'sailing'] },
+  { f: 'The sun ___ into the sea.', a: 'sank', w: ['sinks', 'sinked'] },
+  { f: 'Finn ___ a boat from driftwood.', a: 'made', w: ['makes', 'maked'] },
+  { f: 'The waves ___ on the rocks.', a: 'crashed', w: ['crash', 'crashing'] },
+  { f: 'The queen ___ to Bristol.', a: 'came', w: ['comes', 'comed'] },
+  { f: 'The king ___ a gold crown.', a: 'wore', w: ['wears', 'weared'] },
+  { f: 'The people ___ for the queen.', a: 'cheered', w: ['cheer', 'cheering'] },
+  { f: 'The queen ___ a horse through the gates.', a: 'rode', w: ['rides', 'rided'] },
+  { f: 'Henry ___ many ships.', a: 'built', w: ['builds', 'builded'] },
+  { f: 'The workers ___ the city gates.', a: 'painted', w: ['paint', 'painting'] }
 ];
 var CONTRACTIONS = [
   { c: "didn't", w: ['didnt', "did'nt"], f: 'Finn ___ want to go home.' },
