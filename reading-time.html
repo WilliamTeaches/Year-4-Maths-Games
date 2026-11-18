@@ -264,8 +264,15 @@ function todaysIndex(l) {
   for (var i = 0; i < list.length; i++) if (list[i].date === today) return i;
   // no passage for today (weekend or a later date): the latest one dated before today
   var best = 0;
-  for (var j = 0; j < list.length; j++) if (list[j].date <= today) best = j;
+  for (var j = 0; j < list.length; j++) if (list[j].date && list[j].date <= today) best = j;
   return best;
+}
+// 'Read another text' gives the next bonus text for the same day as the text just read
+// (bonus texts have a bonus date instead of a date, and come after the main texts in the list)
+function nextText(list, idx) {
+  var day = list[idx].date || list[idx].bonus;
+  for (var i = idx + 1; i < list.length; i++) if (list[i].bonus === day) return i;
+  return -1;
 }
 
 /* ---------------- reading a passage ---------------- */
@@ -308,7 +315,7 @@ function sentence() {
   var prev = el('p', { class: 'prev', text: P.s.slice(0, S.si).map(function (x) { return plainOf(x.t); }).join(' ') });
   var textCard = el('div', { class: 'card textCard' },
     el('div', { class: 'setTag', text: SET_ICONS[S.set] + ' ' + SET_NAMES[S.set] }),
-    el('div', { class: 'title', text: P.title }),
+    el('div', { class: 'title', text: (P.bonus ? '🌟 ' : '') + P.title }),
     el('div', { class: 'passage' }, el('div', { class: 'txt' }, !whole && S.si ? prev : null, cur), !whole && it.pic ? el('div', { class: 'pic', text: it.pic }) : null));
   var qCard = el('div', { class: 'card' }), fb = el('div');
   var evs = (it.ev || []).map(norm);
@@ -403,16 +410,17 @@ function sentence() {
 }
 function finished() {
   var l = S.learner, idx = S.idx, set = S.set, P = S.P, list = listFor(l), sets = MORE[P.id] || [];
-  // another text: the one before, or the next one if this is the first
-  var other = idx > 0 ? idx - 1 : (idx + 1 < list.length ? idx + 1 : -1);
+  // another text: the next bonus text for today (never an earlier day's text)
+  var other = nextText(list, idx);
   S.items = null; setHeader();
   var heads = { 1: 'You read the whole passage, ' + l.first + '!', 2: 'Brilliant thinking, ' + l.first + '!', 3: 'Challenge complete, ' + l.first + '!' };
   function setBtn(n) { return el('button', { class: 'big', type: 'button', onclick: function () { begin(l, idx, n); } }, SET_ICONS[n] + ' ' + SET_NAMES[n]); }
   var textBtn = other >= 0 ? el('button', { class: 'big', type: 'button', onclick: function () { begin(l, other, 1); } }, '📚 Read another text') : null;
   var btns = [], msg = null;
   if (set === 1 && sets[0]) { btns.push(setBtn(2)); msg = 'There are more questions about the same text.'; }
-  else if (set === 2 && sets[1]) { btns.push(setBtn(3)); if (textBtn) btns.push(textBtn); msg = 'Choose: the Challenge on this text, or a new text.'; }
+  else if (set === 2 && sets[1]) { btns.push(setBtn(3)); if (textBtn) { btns.push(textBtn); msg = 'Choose: the Challenge on this text, or a new text.'; } else msg = 'There are harder questions about the same text.'; }
   else if (textBtn) btns.push(textBtn);
+  else msg = "You have read every text for today. Amazing reading! Tell an adult you have finished.";
   screen(el('div', { class: 'card center' },
     el('h2', { text: heads[set] }), el('div', { class: 'star', text: set === 3 ? '🏆' : '⭐' }),
     msg ? el('p', { text: msg }) : null,
@@ -495,6 +503,113 @@ var PASSAGES = [
     { t: "Sand was spread over the muddy streets so that the queen's horses would not slip.", type: 'Retrieval', q: 'Why was sand spread on the streets?', o: ['so the horses would not slip', 'to make a beach', 'to keep the streets warm'], ev: ['horses', 'slip'] },
     { t: 'The city gave Elizabeth a purse filled with gold coins as a gift.', type: 'True or false', q: 'True or false: Bristol gave the queen a present.', o: ['True', 'False'], a: 0, ev: ['gift'], why: 'A gift is a present.' },
     { t: 'Her visit lasted a whole week, and Bristol never forgot it.', type: 'Summarise', q: 'Which is the best title for this passage?', o: ["Bristol's royal welcome", 'The muddy river', 'A trip to London'] }
+  ] },
+  // ---- 27 Nov main text ----
+  { id: 'MON-5', title: 'The queen arrives', date: '2026-11-27', s: [
+    { t: 'At last, the great day came, and Queen Elizabeth rode towards the gates of Bristol.', type: 'Retrieval', q: 'Where did the queen ride to?', o: ['the gates of Bristol', 'the beach', 'a palace in London'], ev: ['gates', 'bristol'] },
+    { t: 'Trumpets blasted and crowds of people cheered as she passed by.', type: 'Evidence', q: 'Tap the word that tells you the trumpets were loud.', tap: ['blasted'] },
+    { t: 'The queen was dressed in a magnificent gown sewn with pearls.', type: 'Vocabulary', q: "What does 'magnificent' mean?", o: ['very grand and beautiful', 'old and torn', 'small and plain'], ev: ['magnificent'] },
+    { t: 'A boy stepped forward and gave a speech to welcome her to the city.', type: 'Retrieval', q: 'Who gave a speech?', o: ['a boy', 'the queen', 'a soldier'], ev: ['boy'] },
+    { t: 'Elizabeth smiled and thanked the people of Bristol for their kind welcome.', type: 'Inference', q: 'How did the queen feel about her welcome?', o: ['pleased', 'angry', 'bored'], ev: ['smiled', 'thanked'], why: 'She smiled and said thank you, so she was pleased.' }
+  ] },
+  // ---- bonus texts: 'Read another text' gives these, two per day ----
+  { id: 'OMS-5a', title: 'Gulls by the sea', bonus: '2026-11-18', s: [
+    { t: 'Herring gulls are large white and grey birds that live near the sea.', type: 'Retrieval', q: 'What colours are herring gulls?', o: ['white and grey', 'black and red', 'brown and green'], ev: ['white', 'grey'] },
+    { t: 'They have strong yellow beaks with a small red spot near the tip.', type: 'Retrieval', q: 'Where is the red spot?', o: ['near the tip of the beak', 'on the wing', 'on the tail'], ev: ['red', 'spot', 'tip'] },
+    { t: 'When a chick is hungry, it pecks at the red spot to ask for food.', type: 'Inference', q: 'Why does the chick peck the red spot?', o: ['to tell its parent it wants food', 'to clean the beak', 'to play a game'], ev: ['hungry', 'food'], why: 'Pecking the spot asks the parent for food.' },
+    { t: 'Gulls are clever and will eat almost anything, from fish to crisps.', type: 'Vocabulary', q: "What does 'almost anything' tell you about gulls?", o: ['They eat lots of different foods.', 'They only eat fish.', 'They hardly ever eat.'], ev: ['almost', 'anything'] },
+    { t: 'You can hear their loud calls echoing around harbours and seaside towns.', type: 'Evidence', q: 'Tap the word that tells you gulls are noisy.', tap: ['loud'] }
+  ] },
+  { id: 'OMS-5b', title: 'Kite day', bonus: '2026-11-18', s: [
+    { t: 'On a bright, breezy morning, Maya and her mum carried a red kite to the top of the cliff.', type: 'Retrieval', q: 'What colour was the kite?', o: ['red', 'blue', 'yellow'], ev: ['red', 'kite'] },
+    { t: 'The wind tugged at the kite as if it could not wait to fly.', type: 'Vocabulary', q: "What does 'tugged' mean?", o: ['pulled', 'pushed down', 'stopped'], ev: ['tugged'] },
+    { t: 'Maya let out the string a little at a time, and the kite climbed higher and higher.', type: 'Retrieval', q: 'How did Maya let out the string?', o: ['a little at a time', 'all at once', 'she cut it'], ev: ['little', 'time'] },
+    { t: 'Soon it was just a tiny red dot dancing against the pale blue sky.', type: 'Inference', q: 'Why did the kite look like a tiny dot?', o: ['It was very high up.', 'It had shrunk.', 'It had fallen in the sea.'], ev: ['tiny', 'dot', 'sky'], why: 'Things look tiny when they are far away, so the kite was very high.' },
+    { t: 'Maya laughed, because it felt as though she was holding a piece of the sky.', type: 'Evidence', q: 'Tap the word that shows Maya was happy.', tap: ['laughed'] }
+  ] },
+  { id: 'OMS-6a', title: 'Why is the sea salty?', bonus: '2026-11-19', s: [
+    { t: 'If you have ever swum in the sea, you will know that the water tastes salty.', type: 'Retrieval', q: 'How does sea water taste?', o: ['salty', 'sweet', 'sour'], ev: ['salty'] },
+    { t: 'The salt comes from rocks on land, which are slowly worn away by rain.', type: 'Retrieval', q: 'Where does the salt come from?', o: ['rocks on land', 'the clouds', 'fish'], ev: ['rocks', 'land'] },
+    { t: 'Rivers carry tiny bits of salt from the rocks all the way down to the sea.', type: 'Vocabulary', q: "What does 'carry' mean here?", o: ['take from one place to another', 'throw away', 'hide'], ev: ['carry'] },
+    { t: 'When the sun warms the sea, some of the water rises into the air, but the salt stays behind.', type: 'Inference', q: 'What happens to the salt when some water rises into the air?', o: ['It stays in the sea.', 'It goes up into the air too.', 'It turns into rain.'], ev: ['salt', 'stays', 'behind'] },
+    { t: 'Over millions of years, this has made the oceans very salty indeed.', type: 'True or false', q: 'True or false: the sea became salty very quickly.', o: ['True', 'False'], a: 1, ev: ['millions', 'years'], why: 'It took millions of years.' }
+  ] },
+  { id: 'OMS-6b', title: 'Stars over the bay', bonus: '2026-11-19', s: [
+    { t: 'After tea, Maya and Grandma wrapped up warm and walked down to the quiet bay.', type: 'Retrieval', q: 'Who went with Maya?', o: ['Grandma', 'her teacher', 'her brother'], ev: ['grandma'] },
+    { t: 'The sky was so clear that thousands of stars were sparkling above the water.', type: 'Vocabulary', q: "What does 'sparkling' mean?", o: ['shining and twinkling', 'falling down', 'hiding'], ev: ['sparkling'] },
+    { t: 'Grandma pointed to a bright group of seven stars and said sailors once used them to find their way.', type: 'Retrieval', q: 'How many stars were in the group?', o: ['seven', 'three', 'ten'], ev: ['seven'] },
+    { t: 'Maya noticed that the moon had drawn a silver path across the calm sea.', type: 'Evidence', q: 'Tap the word that tells you the sea was not rough.', tap: ['calm'] },
+    { t: 'She wished she could walk along it, all the way to the edge of the sky.', type: 'Inference', q: 'How do you think Maya felt?', o: ['full of wonder', 'cross', 'bored'], ev: ['wished'], why: 'She wished she could walk along the moon path, so she felt amazed.' }
+  ] },
+  { id: 'MON-1a', title: 'The Crown Jewels', bonus: '2026-11-20', s: [
+    { t: 'The Crown Jewels are a collection of crowns, rings and other treasures that belong to the monarch.', type: 'Retrieval', q: 'Who do the Crown Jewels belong to?', o: ['the monarch', 'a museum', 'a pirate'], ev: ['monarch'] },
+    { t: 'They are kept safe in the Tower of London, where guards watch over them day and night.', type: 'Retrieval', q: 'Where are the Crown Jewels kept?', o: ['the Tower of London', 'a bank in Bristol', 'a castle in France'], ev: ['tower', 'london'] },
+    { t: 'One of the most famous pieces is a gold crown that is placed on the new monarch\'s head at a coronation.', type: 'Vocabulary', q: "What does 'famous' mean?", o: ['well known', 'very small', 'brand new'], ev: ['famous'] },
+    { t: 'It is so heavy that the monarch only wears it for a short time.', type: 'Inference', q: 'Why does the monarch only wear this crown for a short time?', o: ['It is too heavy to wear for long.', 'It is too small.', 'It is not shiny.'], ev: ['heavy', 'short'] },
+    { t: 'Every year, millions of visitors queue up to see the glittering jewels.', type: 'Evidence', q: 'Tap the word that tells you the jewels shine.', tap: ['glittering'] }
+  ] },
+  { id: 'MON-1b', title: 'A card for the King', bonus: '2026-11-20', s: [
+    { t: 'When Amira heard that the King was coming to open the new hospital, she decided to make him a card.', type: 'Retrieval', q: 'What was the King coming to open?', o: ['a new hospital', 'a school', 'a shop'], ev: ['hospital'] },
+    { t: 'She folded a sheet of thick paper and drew a golden crown on the front.', type: 'Retrieval', q: 'What did Amira draw on the front?', o: ['a golden crown', 'a red bus', 'a big tree'], ev: ['golden', 'crown'] },
+    { t: 'Inside, she wrote a message in her neatest handwriting.', type: 'Vocabulary', q: "What does 'neatest' mean?", o: ['most tidy', 'most messy', 'biggest'], ev: ['neatest'] },
+    { t: 'On the day of the visit, Amira stood at the front of the crowd, holding her card tightly.', type: 'Inference', q: 'Why did Amira hold her card tightly?', o: ['She did not want to drop it.', 'She was cold.', 'She wanted to tear it.'], ev: ['tightly'] },
+    { t: 'When the King stopped, smiled and took the card, her heart did a little skip.', type: 'Evidence', q: 'Tap the word that shows the King was friendly.', tap: ['smiled'] }
+  ] },
+  { id: 'MON-2a', title: "Henry's kitchens", bonus: '2026-11-24', s: [
+    { t: "Hampton Court was one of Henry VIII's favourite palaces, close to the River Thames.", type: 'Retrieval', q: 'Which river is Hampton Court close to?', o: ['the River Thames', 'the River Avon', 'the River Severn'], ev: ['thames'] },
+    { t: 'Its kitchens were huge, with dozens of rooms for baking, boiling and roasting.', type: 'Vocabulary', q: "What is 'roasting'?", o: ['cooking in the heat of a fire or oven', 'washing up', 'cutting bread'], ev: ['roasting'] },
+    { t: 'Hundreds of cooks and helpers worked there to feed the king and his court.', type: 'Retrieval', q: 'Who worked in the kitchens?', o: ['cooks and helpers', 'soldiers', 'teachers'], ev: ['cooks', 'helpers'] },
+    { t: 'Big pieces of meat were turned slowly on spits in front of giant fireplaces.', type: 'Evidence', q: 'Tap the word that tells you the fireplaces were very big.', tap: ['giant'] },
+    { t: 'The kitchens were so hot and busy that they must have been very noisy places to work.', type: 'Inference', q: 'What was it like to work in the kitchens?', o: ['hot, busy and noisy', 'cold and quiet', 'calm and relaxing'], ev: ['hot', 'busy', 'noisy'] }
+  ] },
+  { id: 'MON-2b', title: 'The feast', bonus: '2026-11-24', s: [
+    { t: 'Tom had been awake since before dawn, carrying logs to the great kitchen fires.', type: 'Retrieval', q: 'What was Tom carrying?', o: ['logs', 'water', 'bread'], ev: ['logs'] },
+    { t: 'Today the king was holding a feast, and everything had to be perfect.', type: 'Vocabulary', q: "What is a 'feast'?", o: ['a big special meal', 'a small snack', 'a type of game'], ev: ['feast'] },
+    { t: 'The cooks rushed past him with trays of pies, roasted swans and sugary sweets.', type: 'Retrieval', q: 'Which of these was on the trays?', o: ['pies', 'pizza', 'chips'], ev: ['pies'] },
+    { t: "Tom's mouth watered as the delicious smell drifted through the kitchen.", type: 'Inference', q: "What does 'Tom's mouth watered' tell you?", o: ['He wanted to eat the food.', 'He was thirsty.', 'He was crying.'], ev: ['mouth', 'watered'], why: 'Your mouth waters when you see or smell food you want.' },
+    { t: 'At the end of the night, the head cook gave him a warm pie of his very own.', type: 'Evidence', q: 'Tap the word that tells you the pie was fresh from the oven.', tap: ['warm'] }
+  ] },
+  { id: 'MON-3a', title: 'Bess of Hardwick', bonus: '2026-11-25', s: [
+    { t: 'Bess of Hardwick was one of the richest and most powerful women in Tudor England.', type: 'Retrieval', q: 'When did Bess of Hardwick live?', o: ['in Tudor times', 'last year', 'in Roman times'], ev: ['tudor'] },
+    { t: 'She was a clever businesswoman who owned land, farms and mines.', type: 'Vocabulary', q: "What is a 'businesswoman'?", o: ['a woman who runs a business to make money', 'a woman who builds boats', 'a queen'], ev: ['businesswoman'] },
+    { t: 'Bess loved to build, and she planned a grand new house called Hardwick Hall.', type: 'Retrieval', q: 'What was the name of her house?', o: ['Hardwick Hall', 'Hampton Court', 'Bristol Castle'], ev: ['hardwick', 'hall'] },
+    { t: 'The house had so many huge windows that people said it was more glass than wall.', type: 'Inference', q: "Why did people say the house was 'more glass than wall'?", o: ['It had lots of big windows.', 'It was made of ice.', 'It had no roof.'], ev: ['windows', 'glass'] },
+    { t: 'On the roof, she proudly had her initials, E S, carved in giant stone letters.', type: 'Evidence', q: 'Tap the word that shows how Bess felt about her house.', tap: ['proudly'] }
+  ] },
+  { id: 'MON-3b', title: 'A Tudor school', bonus: '2026-11-25', s: [
+    { t: "Will had to be at school by six o'clock in the morning, even in winter.", type: 'Retrieval', q: 'What time did school start?', o: ["six o'clock", "nine o'clock", "twelve o'clock"], ev: ['six'] },
+    { t: 'He carried a hornbook, a wooden bat with the alphabet on it.', type: 'Vocabulary', q: "What is a 'hornbook'?", o: ['a wooden bat with the alphabet on it', 'a musical horn', 'a book about animals'], ev: ['hornbook', 'alphabet'] },
+    { t: 'A thin sheet of see-through horn covered the letters to keep them clean.', type: 'Retrieval', q: 'Why did horn cover the letters?', o: ['to keep them clean', 'to make them colourful', 'to hide them'], ev: ['clean'] },
+    { t: 'All day, the boys chanted their lessons until they knew them by heart.', type: 'Vocabulary', q: "What does 'by heart' mean?", o: ['from memory, without looking', 'in a loud voice', 'very sadly'], ev: ['heart'] },
+    { t: 'When the bell finally rang, Will raced out into the cold, dark evening.', type: 'Evidence', q: 'Tap the word that tells you Will left quickly.', tap: ['raced'] }
+  ] },
+  { id: 'MON-4a', title: 'Tudor Bristol', bonus: '2026-11-26', s: [
+    { t: 'In Tudor times, Bristol was one of the busiest ports in England.', type: 'Vocabulary', q: "What is a 'port'?", o: ['a town where ships load and unload', 'a type of boat', 'a castle'], ev: ['ports'], why: 'Ships come and go from a port.' },
+    { t: 'Tall ships sailed up the River Avon and tied up at the quay in the middle of the city.', type: 'Retrieval', q: 'Which river did the ships sail up?', o: ['the River Avon', 'the River Thames', 'the River Nile'], ev: ['avon'] },
+    { t: 'Sailors unloaded barrels of wine from France and Spain.', type: 'Retrieval', q: 'What came in the barrels?', o: ['wine', 'milk', 'sand'], ev: ['wine', 'barrels'] },
+    { t: 'They loaded the ships with woollen cloth to sell in other countries.', type: 'Inference', q: 'Why was cloth put on the ships?', o: ['to sell in other countries', 'to make new sails', 'to keep the sailors warm'], ev: ['sell', 'countries'] },
+    { t: 'The quay was full of shouting traders, rolling barrels and squawking gulls.', type: 'Evidence', q: 'Tap the word that tells you the gulls were noisy.', tap: ['squawking'] }
+  ] },
+  { id: 'MON-4b', title: 'Market day', bonus: '2026-11-26', s: [
+    { t: "Kit held tightly to her father's hand as they pushed through the crowded Bristol market.", type: 'Retrieval', q: 'Whose hand did Kit hold?', o: ["her father's", "her teacher's", "the queen's"], ev: ["father's"] },
+    { t: 'Stalls were piled high with bread, cheese, apples and fresh fish.', type: 'Retrieval', q: 'Which of these was on the stalls?', o: ['cheese', 'chocolate', 'crisps'], ev: ['cheese'] },
+    { t: 'A man with a tray of ribbons called out, "Pretty ribbons for pretty hair!"', type: 'Inference', q: 'Why was the man calling out?', o: ['to get people to buy his ribbons', 'because he was lost', 'to sing a song'], ev: ['called', 'ribbons'] },
+    { t: "Kit's father bought a loaf, some cheese and one shiny red apple just for her.", type: 'Evidence', q: 'Tap the word that tells you the apple looked bright.', tap: ['shiny'] },
+    { t: 'She crunched it slowly all the way home, listening to the bells of the city.', type: 'Vocabulary', q: "What does 'crunched' mean?", o: ['bit into it noisily', 'threw it', 'dropped it'], ev: ['crunched'] }
+  ] },
+  { id: 'MON-5a', title: 'Tudor music', bonus: '2026-11-27', s: [
+    { t: 'Music was everywhere in Tudor England, from royal palaces to village fields.', type: 'Retrieval', q: 'Where was there music in Tudor England?', o: ['everywhere', 'only in churches', 'nowhere'], ev: ['everywhere'] },
+    { t: 'Queen Elizabeth loved music and could play an instrument called the virginals.', type: 'Retrieval', q: 'What instrument could Elizabeth play?', o: ['the virginals', 'the drums', 'the guitar'], ev: ['virginals'] },
+    { t: 'It looked like a small box with keys, a bit like a tiny piano.', type: 'Vocabulary', q: "What does 'a bit like' mean here?", o: ['quite similar to', 'exactly the same as', 'nothing like'], ev: ['bit', 'like'] },
+    { t: 'Tudor people also loved to dance, and Elizabeth was a very good dancer.', type: 'True or false', q: 'True or false: Elizabeth was good at dancing.', o: ['True', 'False'], a: 0, ev: ['good', 'dancer'], why: 'It says she was a very good dancer.' },
+    { t: 'At feasts, musicians played lutes, pipes and drums while guests twirled around the room.', type: 'Evidence', q: 'Tap the word that tells you how the guests danced.', tap: ['twirled'] }
+  ] },
+  { id: 'MON-5b', title: 'Tudor homes', bonus: '2026-11-27', s: [
+    { t: 'Many Tudor houses had a wooden frame made from thick oak beams.', type: 'Retrieval', q: 'What wood were the beams made from?', o: ['oak', 'pine', 'plastic'], ev: ['oak'] },
+    { t: 'The gaps between the beams were filled with wattle and daub.', type: 'Retrieval', q: 'What filled the gaps between the beams?', o: ['wattle and daub', 'glass', 'bricks'], ev: ['wattle', 'daub'] },
+    { t: 'Wattle was a criss-cross of thin sticks, and daub was a sticky mix of mud and straw.', type: 'Retrieval', q: 'What was daub made from?', o: ['mud and straw', 'sugar and flour', 'stone and sand'], ev: ['mud', 'straw'] },
+    { t: 'The beams were often painted black and the walls white, so we call them black and white houses.', type: 'Inference', q: "Why do we call them 'black and white houses'?", o: ['The beams were black and the walls were white.', 'They were built at night.', 'They had black and white cats.'], ev: ['black', 'white'] },
+    { t: 'Rich families had glass windows, but poorer families used wooden shutters to keep out the wind.', type: 'Evidence', q: 'Tap the word that tells you what poorer families used instead of glass.', tap: ['shutters'] }
   ] }
 ];
 
@@ -559,7 +674,70 @@ var WORD_G = {
   "welcome": "w-e-l-c-o-m-e", "went": "w-e-n-t", "were": "w-ere", "what": "wh-a-t", "when": "wh-e-n", "where": "wh-ere", "wherever": "wh-ere-v-er",
   "white": "wh-i_e-t", "who": "wh-o", "whole": "wh-o_e-l", "wind": "w-i-n-d", "window": "w-i-n-d-ow", "wispy": "w-i-s-p-y", "with": "w-i-th",
   "wood": "w-oo-d", "wool": "w-oo-l", "workers": "w-or-k-er-s", "world": "w-or-l-d", "would": "w-oul-d", "years": "y-ear-s", "you": "y-ou",
-  "young": "y-ou-ng"
+  "young": "y-ou-ng",
+  // added 18 Nov 2026 for the bonus texts
+  "air": "air", "almost": "a-l-m-o-s-t", "along": "a-l-o-ng", "alphabet": "a-l-ph-a-b-e-t", "amira": "a-m-i-r-a", "an": "a-n",
+  "anything": "a-n-y-th-i-ng", "apple": "a-pp-le", "apples": "a-pp-le-s", "are": "ar-e", "ask": "a-s-k", "avon": "a-v-o-n",
+  "awake": "a-w-a_e-k", "away": "a-w-ay", "baking": "b-a-k-i-ng", "barrels": "b-a-rr-e-l-s", "bat": "b-a-t", "bay": "b-ay",
+  "beaks": "b-ea-k-s", "beams": "b-ea-m-s", "been": "b-ee-n", "bell": "b-e-ll", "bells": "b-e-ll-s", "belong": "b-e-l-o-ng",
+  "bess": "b-e-ss", "big": "b-i-g", "birds": "b-ir-d-s", "bit": "b-i-t", "bits": "b-i-t-s", "black": "b-l-a-ck", "blasted": "b-l-a-s-t-ed",
+  "boiling": "b-oi-l-i-ng", "bought": "b-ough-t", "box": "b-o-x", "boy": "b-oy", "boys": "b-oy-s", "bread": "b-r-ea-d",
+  "breezy": "b-r-ee-z-y", "busiest": "b-u-s-i-e-s-t", "businesswoman": "b-u-s-i-n-e-ss-w-o-m-a-n", "busy": "b-u-s-y", "call": "c-a-ll",
+  "calls": "c-a-ll-s", "calm": "c-a-l-m", "came": "c-a_e-m", "can": "c-a-n", "card": "c-ar-d", "carried": "c-a-rr-ie-d", "carry": "c-a-rr-y",
+  "carrying": "c-a-rr-y-i-ng", "carved": "c-ar-v-ed", "chanted": "ch-a-n-t-ed", "cheered": "ch-eer-ed", "cheese": "ch-ee-se",
+  "chick": "ch-i-ck", "clean": "c-l-ea-n", "clear": "c-l-ear", "cliff": "c-l-i-ff", "climbed": "c-l-i-mb-ed", "close": "c-l-o_e-s",
+  "cloth": "c-l-o-th", "cold": "c-o-l-d", "collection": "c-o-ll-e-c-tion", "comes": "c-o-m-e-s", "cook": "c-oo-k", "cooks": "c-oo-k-s",
+  "countries": "c-ou-n-t-r-ie-s", "court": "c-our-t", "crisps": "c-r-i-s-p-s", "crowd": "c-r-ow-d", "crowded": "c-r-ow-d-ed",
+  "crowds": "c-r-ow-d-s", "crowns": "c-r-ow-n-s", "crunched": "c-r-u-n-ch-ed", "dance": "d-a-n-ce", "dancer": "d-a-n-c-er",
+  "dancing": "d-a-n-c-i-ng", "daub": "d-au-b", "dawn": "d-aw-n", "decided": "d-e-c-i_e-d-d", "delicious": "d-e-l-i-ci-ou-s", "did": "d-i-d",
+  "dot": "d-o-t", "drawn": "d-r-aw-n", "dressed": "d-r-e-ss-ed", "drew": "d-r-ew", "drifted": "d-r-i-f-t-ed", "drums": "d-r-u-m-s",
+  "eat": "ea-t", "echoing": "e-ch-o-i-ng", "even": "e-v-e-n", "evening": "e-v-e-n-i-ng", "everything": "e-v-er-y-th-i-ng",
+  "everywhere": "e-v-er-y-wh-ere", "families": "f-a-m-i-l-ie-s", "famous": "f-a-m-ou-s", "farms": "f-ar-m-s", "father": "f-a-th-er",
+  "father's": "f-a-th-er-'-s", "favourite": "f-a-v-our-i-t-e", "feast": "f-ea-s-t", "feed": "f-ee-d", "felt": "f-e-l-t",
+  "fields": "f-ie-l-d-s", "finally": "f-i-n-a-ll-y", "find": "f-i-n-d", "fireplaces": "f-i_e-r-p-l-a_e-c-s", "fires": "f-i_e-r-s",
+  "fish": "f-i-sh", "fly": "f-l-y", "folded": "f-o-l-d-ed", "food": "f-oo-d", "forward": "f-or-w-ar-d", "frame": "f-r-a_e-m",
+  "france": "f-r-a-n-ce", "fresh": "f-r-e-sh", "front": "f-r-o-n-t", "full": "f-u-ll", "gaps": "g-a-p-s", "glass": "g-l-a-ss",
+  "glittering": "g-l-i-tt-er-i-ng", "good": "g-oo-d", "gown": "g-ow-n", "grandma": "g-r-a-n-d-m-a", "great": "g-r-ea-t", "grey": "g-r-ey",
+  "group": "g-r-ou-p", "guards": "gu-ar-d-s", "guests": "gu-e-s-t-s", "hair": "h-air", "hall": "h-a-ll", "hampton": "h-a-m-p-t-o-n",
+  "hand": "h-a-n-d", "handwriting": "h-a-n-d-wr-i-t-i-ng", "harbours": "h-ar-b-our-s", "hardwick": "h-ar-d-w-i-ck", "has": "h-a-s",
+  "have": "h-a-ve", "hear": "h-ear", "heart": "h-ear-t", "helpers": "h-e-l-p-er-s", "herring": "h-e-rr-i-ng", "higher": "h-igh-er",
+  "holding": "h-o-l-d-i-ng", "home": "h-o_e-m", "horn": "h-or-n", "hornbook": "h-or-n-b-oo-k", "hospital": "h-o-s-p-i-t-a-l", "hot": "h-o-t",
+  "house": "h-ou-se", "houses": "h-ou-s-e-s", "hundreds": "h-u-n-d-r-e-d-s", "hungry": "h-u-n-g-r-y", "indeed": "i-n-d-ee-d",
+  "initials": "i-n-i-t-i-a-l-s", "inside": "i-n-s-i_e-d", "instrument": "i-n-s-t-r-u-m-e-n-t", "jewels": "j-ew-e-l-s", "keep": "k-ee-p",
+  "keys": "k-ey-s", "kind": "k-i-n-d", "kit": "k-i-t", "kit's": "k-i-t-'-s", "kitchen": "k-i-tch-e-n", "kitchens": "k-i-tch-e-n-s",
+  "kite": "k-i_e-t", "know": "kn-ow", "land": "l-a-n-d", "large": "l-ar-ge", "laughed": "l-augh-ed", "lessons": "l-e-ss-o-n-s",
+  "let": "l-e-t", "letters": "l-e-tt-er-s", "listening": "l-i-s-t-e-n-i-ng", "little": "l-i-tt-le", "live": "l-i-ve", "loaded": "l-oa-d-ed",
+  "loaf": "l-oa-f", "logs": "l-o-g-s", "london": "l-o-n-d-o-n", "loud": "l-ou-d", "lutes": "l-u_e-t-s",
+  "magnificent": "m-a-g-n-i-f-i-c-e-n-t", "man": "m-a-n", "market": "m-ar-k-e-t", "maya": "m-ay-a", "meat": "m-ea-t",
+  "message": "m-e-ss-a-ge", "millions": "m-i-ll-i-o-n-s", "mines": "m-i_e-n-s", "mix": "m-i-x", "moon": "m-oo-n", "more": "m-ore",
+  "most": "m-o-s-t", "mouth": "m-ou-th", "mud": "m-u-d", "mum": "m-u-m", "musicians": "m-u-s-i-ci-a-n-s", "must": "m-u-s-t",
+  "neatest": "n-ea-t-e-s-t", "noisy": "n-oi-s-y", "noticed": "n-o-t-i-ce-d", "o'clock": "o-'-c-l-o-ck", "oak": "oa-k",
+  "oceans": "o-c-ea-n-s", "often": "o-f-t-e-n", "once": "o-n-ce", "open": "o-p-e-n", "other": "o-th-er", "own": "ow-n", "owned": "ow-n-ed",
+  "paper": "p-a-p-er", "passed": "p-a-ss-ed", "path": "p-a-th", "pearls": "p-ear-l-s", "pecks": "p-e-ck-s", "piano": "p-i-a-n-o",
+  "pie": "p-ie", "piece": "p-ie-ce", "pies": "p-ie-s", "piled": "p-i_e-l-d", "pipes": "p-i_e-p-s", "places": "p-l-a_e-c-s",
+  "planned": "p-l-a-nn-ed", "play": "p-l-ay", "played": "p-l-ay-ed", "pointed": "p-oi-n-t-ed", "poorer": "p-oor-er", "ports": "p-or-t-s",
+  "powerful": "p-ow-er-f-u-l", "pretty": "p-r-e-tt-y", "proudly": "p-r-ou-d-l-y", "pushed": "p-u-sh-ed", "quay": "qu-ay", "queue": "qu-e-ue",
+  "quiet": "qu-ie-t", "raced": "r-a_e-c-d", "rain": "r-ai-n", "rang": "r-a-ng", "richest": "r-i-ch-e-s-t", "rings": "r-i-ng-s",
+  "rises": "r-i_e-s-s", "river": "r-i-v-er", "rivers": "r-i-v-er-s", "roasted": "r-oa-s-t-ed", "roasting": "r-oa-s-t-i-ng",
+  "rode": "r-o_e-d", "rolling": "r-o-ll-i-ng", "roof": "r-oo-f", "room": "r-oo-m", "rooms": "r-oo-m-s", "royal": "r-oy-a-l",
+  "sailed": "s-ai-l-ed", "salt": "s-a-l-t", "salty": "s-a-l-t-y", "school": "s-ch-oo-l", "seaside": "s-ea-s-i_e-d", "sell": "s-e-ll",
+  "seven": "s-e-v-e-n", "sewn": "s-ew-n", "shiny": "sh-i-n-y", "ships": "sh-i-p-s", "short": "sh-or-t", "shouting": "sh-ou-t-i-ng",
+  "shutters": "sh-u-tt-er-s", "silver": "s-i-l-v-er", "since": "s-i-n-ce", "six": "s-i-x", "skip": "s-k-i-p", "smell": "s-m-e-ll",
+  "some": "s-o-m-e", "soon": "s-oo-n", "spain": "s-p-ai-n", "sparkling": "s-p-ar-k-l-i-ng", "speech": "s-p-ee-ch", "spits": "s-p-i-t-s",
+  "spot": "s-p-o-t", "squawking": "s-qu-aw-k-i-ng", "stalls": "s-t-a-ll-s", "stars": "s-t-ar-s", "stays": "s-t-ay-s",
+  "stepped": "s-t-e-pp-ed", "sticks": "s-t-i-ck-s", "sticky": "s-t-i-ck-y", "stopped": "s-t-o-pp-ed", "straw": "s-t-r-aw",
+  "string": "s-t-r-i-ng", "strong": "s-t-r-o-ng", "sugary": "s-u-g-ar-y", "swans": "s-w-a-n-s", "sweets": "s-w-ee-t-s", "swum": "s-w-u-m",
+  "tastes": "t-a-s-t-e-s", "tea": "t-ea", "thames": "th-a-m-e-s", "thanked": "th-a-n-k-ed", "them": "th-e-m", "thick": "th-i-ck",
+  "this": "th-i-s", "though": "th-ough", "thousands": "th-ou-s-a-n-d-s", "through": "th-r-ough", "tightly": "t-igh-t-l-y",
+  "times": "t-i_e-m-s", "tip": "t-i-p", "tom": "t-o-m", "tom's": "t-o-m-'-s", "took": "t-oo-k", "top": "t-o-p", "towards": "t-ow-ar-d-s",
+  "tower": "t-ow-er", "traders": "t-r-a-d-er-s", "tray": "t-r-ay", "trays": "t-r-ay-s", "treasures": "t-r-ea-s-ure-s",
+  "trumpets": "t-r-u-m-p-e-t-s", "tudor": "t-u-d-or", "tugged": "t-u-gg-ed", "turned": "t-ur-n-ed", "twirled": "t-w-ir-l-ed",
+  "unloaded": "u-n-l-oa-d-ed", "used": "u_e-s-d", "very": "v-er-y", "village": "v-i-ll-a-ge", "virginals": "v-ir-g-i-n-a-l-s",
+  "visitors": "v-i-s-i-t-or-s", "wait": "w-ai-t", "walk": "w-a-l-k", "walked": "w-a-l-k-ed", "walls": "w-a-ll-s", "warm": "w-ar-m",
+  "warms": "w-ar-m-s", "watch": "w-a-tch", "watered": "w-a-t-er-ed", "wattle": "w-a-tt-le", "we": "w-e", "wears": "w-ear-s",
+  "which": "wh-i-ch", "while": "wh-i_e-l", "will": "w-i-ll", "windows": "w-i-n-d-ow-s", "wine": "w-i_e-n", "winter": "w-i-n-t-er",
+  "wished": "w-i-sh-ed", "women": "w-o-m-e-n", "wooden": "w-oo-d-e-n", "woollen": "w-oo-ll-e-n", "work": "w-or-k", "worked": "w-or-k-ed",
+  "worn": "w-or-n", "wrapped": "wr-a-pp-ed", "wrote": "wr-o_e-t", "year": "y-ear", "yellow": "y-e-ll-ow"
 };
 
 // Earlier stage passages: every word split into graphemes ('-'), split digraphs as a_e
@@ -633,6 +811,113 @@ var MAH_PASSAGES = [
     { t: 'Th-e c-r-o-ss i-s g-o-l-d.', pic: '✨', type: 'Retrieval', q: 'What colour is the cross?', o: ['💛 gold', '💚 green', '💜 purple'], ev: ['gold'] },
     { t: 'Th-ey p-u-t s-a-n-d o-n th-e r-oa-d.', pic: '🛣️', type: 'Retrieval', q: 'What do they put on the road?', o: ['🏖️ sand', '💧 water', '🍰 cake'], ev: ['sand'] },
     { t: 'B-r-i-s-t-o-l g-i-ve-s h-er a g-i-f-t.', pic: '🎁', type: 'Retrieval', q: 'What does Bristol give her?', o: ['🎁 a gift', '🐶 a dog', '🚗 a car'], ev: ['gift'] }
+  ] },
+  // ---- 27 Nov main text ----
+  { id: 'MAH-MON-5', title: 'The queen comes', date: '2026-11-27', s: [
+    { t: 'Th-e qu-ee-n r-i_e-d-s t-o B-r-i-s-t-o-l.', pic: '👸', type: 'Retrieval', q: 'Who rides to Bristol?', o: ['👸 the queen', '👦 a boy', '🐶 a dog'], ev: ['queen'] },
+    { t: 'A b-i-g c-r-ow-d ch-eer-s.', pic: '🎉', type: 'Yes or no', q: 'Does the crowd cheer?', o: ['✅ yes', '❌ no'], ev: ['cheers'] },
+    { t: 'Sh-e h-a-s a l-o-ng g-ow-n.', pic: '👗', type: 'Retrieval', q: 'What does the queen have?', o: ['👗 a long gown', '🎒 a bag', '🧢 a cap'], ev: ['gown'] },
+    { t: 'A b-oy s-ay-s h-e-ll-o.', pic: '👦', type: 'Retrieval', q: 'Who says hello?', o: ['👦 a boy', '🤴 a king', '🐱 a cat'], ev: ['boy'] },
+    { t: 'Th-e qu-ee-n i-s g-l-a-d.', pic: '😀', type: 'Yes or no', q: 'Is the queen glad?', o: ['✅ yes', '❌ no'], ev: ['glad'] }
+  ] },
+  // ---- bonus texts, same order as the Y3 bonus texts ----
+  { id: 'MAH-OMS-5a', title: 'Gulls', bonus: '2026-11-18', s: [
+    { t: 'A g-u-ll i-s wh-i_e-t a-n-d g-r-ey.', pic: '🐦', type: 'Retrieval', q: 'What colour is the gull?', o: ['⚪ white and grey', '❤️ red', '💚 green'], ev: ['white', 'grey'] },
+    { t: 'I-t h-a-s a y-e-ll-ow b-ea-k.', pic: '💛', type: 'Retrieval', q: 'What colour is the beak?', o: ['💛 yellow', '💙 blue', '🖤 black'], ev: ['yellow'] },
+    { t: 'Th-e g-u-ll c-a-n f-l-y.', pic: '🐦', type: 'Yes or no', q: 'Can the gull fly?', o: ['✅ yes', '❌ no'], ev: ['fly'] },
+    { t: 'I-t ea-t-s f-i-sh.', pic: '🐟', type: 'Retrieval', q: 'What does it eat?', o: ['🐟 fish', '🍰 cake', '🥕 carrots'], ev: ['fish'] },
+    { t: 'Th-e g-u-ll i-s v-er-y l-ou-d.', pic: '📢', type: 'Yes or no', q: 'Is the gull quiet?', o: ['✅ yes', '❌ no'], a: 1, ev: ['loud'] }
+  ] },
+  { id: 'MAH-OMS-5b', title: 'A kite', bonus: '2026-11-18', s: [
+    { t: 'M-ay-a h-a-s a r-e-d k-i_e-t.', pic: '❤️', type: 'Retrieval', q: 'What colour is the kite?', o: ['❤️ red', '💙 blue', '💛 yellow'], ev: ['red'] },
+    { t: 'Th-e w-i-n-d i-s s-t-r-o-ng.', pic: '🌬️', type: 'Yes or no', q: 'Is the wind strong?', o: ['✅ yes', '❌ no'], ev: ['strong'] },
+    { t: 'Th-e k-i_e-t g-oe-s u-p a-n-d u-p.', pic: '⬆️', type: 'Retrieval', q: 'Where does the kite go?', o: ['⬆️ up', '⬇️ down', '🏠 home'], ev: ['up'] },
+    { t: 'I-t i-s h-igh i-n th-e s-k-y.', pic: '☁️', type: 'Retrieval', q: 'Where is the kite?', o: ['☁️ in the sky', '🌊 in the sea', '🌳 in a tree'], ev: ['sky'] },
+    { t: 'M-ay-a i-s s-o h-a-pp-y.', pic: '😀', type: 'Yes or no', q: 'Is Maya sad?', o: ['✅ yes', '❌ no'], a: 1, ev: ['happy'] }
+  ] },
+  { id: 'MAH-OMS-6a', title: 'The salty sea', bonus: '2026-11-19', s: [
+    { t: 'Th-e s-ea i-s s-a-l-t-y.', pic: '🌊', type: 'Retrieval', q: 'What is the sea like?', o: ['🌊 salty', '🍰 sweet', '🍋 sour'], ev: ['salty'] },
+    { t: 'R-ai-n f-a-ll-s o-n th-e r-o-ck-s.', pic: '🌧️', type: 'Retrieval', q: 'What falls on the rocks?', o: ['🌧️ rain', '🍎 apples', '⭐ stars'], ev: ['rain'] },
+    { t: 'R-i-v-er-s r-u-n t-o th-e s-ea.', pic: '🏞️', type: 'Retrieval', q: 'Where do rivers run?', o: ['🌊 to the sea', '⛰️ up a hill', '🏠 to a house'], ev: ['sea'] },
+    { t: 'Th-e s-u-n i-s h-o-t.', pic: '☀️', type: 'Yes or no', q: 'Is the sun hot?', o: ['✅ yes', '❌ no'], ev: ['hot'] },
+    { t: 'Th-e s-a-l-t s-t-ay-s i-n th-e s-ea.', pic: '🌊', type: 'Retrieval', q: 'What stays in the sea?', o: ['salt', 'sand', 'snow'], ev: ['salt'] }
+  ] },
+  { id: 'MAH-OMS-6b', title: 'Stars', bonus: '2026-11-19', s: [
+    { t: 'I-t i-s n-igh-t.', pic: '🌃', type: 'Yes or no', q: 'Is it night?', o: ['✅ yes', '❌ no'], ev: ['night'] },
+    { t: 'M-ay-a a-n-d G-r-a-n-d-m-a g-o t-o th-e b-ay.', pic: '👵', type: 'Retrieval', q: 'Who goes with Maya?', o: ['👵 Grandma', '👶 a baby', '🐶 a dog'], ev: ['grandma'] },
+    { t: 'Th-e s-t-ar-s ar-e b-r-igh-t.', pic: '⭐', type: 'Retrieval', q: 'What is bright?', o: ['⭐ the stars', '🌳 the trees', '🐟 the fish'], ev: ['stars'] },
+    { t: 'Th-e m-oo-n i-s s-i-l-v-er.', pic: '🌙', type: 'Retrieval', q: 'What colour is the moon?', o: ['⚪ silver', '❤️ red', '💚 green'], ev: ['silver'] },
+    { t: 'Th-e s-ea i-s s-t-i-ll.', pic: '🌊', type: 'Yes or no', q: 'Is the sea still?', o: ['✅ yes', '❌ no'], ev: ['still'] }
+  ] },
+  { id: 'MAH-MON-1a', title: 'The crown', bonus: '2026-11-20', s: [
+    { t: 'Th-e k-i-ng h-a-s a c-r-ow-n.', pic: '👑', type: 'Retrieval', q: 'What does the king have?', o: ['👑 a crown', '🎩 a hat', '🧢 a cap'], ev: ['crown'] },
+    { t: 'I-t i-s g-o-l-d.', pic: '💛', type: 'Retrieval', q: 'What colour is it?', o: ['💛 gold', '💚 green', '💙 blue'], ev: ['gold'] },
+    { t: 'I-t h-a-s r-e-d j-ew-e-l-s.', pic: '💎', type: 'Retrieval', q: 'What colour are the jewels?', o: ['❤️ red', '💛 yellow', '🖤 black'], ev: ['red'] },
+    { t: 'Th-e c-r-ow-n i-s h-ea-v-y.', pic: '👑', type: 'Yes or no', q: 'Is the crown heavy?', o: ['✅ yes', '❌ no'], ev: ['heavy'] },
+    { t: 'M-e-n k-ee-p i-t s-a_e-f.', pic: '🏰', type: 'Retrieval', q: 'Who keeps it safe?', o: ['👨 men', '🐶 dogs', '👶 babies'], ev: ['men'] }
+  ] },
+  { id: 'MAH-MON-1b', title: 'A card', bonus: '2026-11-20', s: [
+    { t: 'A-m-i-r-a m-a_e-k-s a c-ar-d.', pic: '✉️', type: 'Retrieval', q: 'What does Amira make?', o: ['✉️ a card', '🎂 a cake', '🎈 a balloon'], ev: ['card'] },
+    { t: 'Sh-e d-r-aw-s a c-r-ow-n.', pic: '👑', type: 'Retrieval', q: 'What does she draw?', o: ['👑 a crown', '🐶 a dog', '🚗 a car'], ev: ['crown'] },
+    { t: 'Th-e k-i-ng c-o-m-e-s t-o t-ow-n.', pic: '🤴', type: 'Retrieval', q: 'Who comes to town?', o: ['🤴 the king', '🐱 a cat', '👦 a boy'], ev: ['king'] },
+    { t: 'A-m-i-r-a g-i-ve-s h-i-m th-e c-ar-d.', pic: '🎁', type: 'Yes or no', q: 'Does Amira give the king the card?', o: ['✅ yes', '❌ no'], ev: ['gives'] },
+    { t: 'Th-e k-i-ng s-m-i_e-l-s.', pic: '😀', type: 'Yes or no', q: 'Does the king smile?', o: ['✅ yes', '❌ no'], ev: ['smiles'] }
+  ] },
+  { id: 'MAH-MON-2a', title: 'The kitchen', bonus: '2026-11-24', s: [
+    { t: 'Th-e k-i-tch-e-n i-s b-i-g.', pic: '🏰', type: 'Yes or no', q: 'Is the kitchen big?', o: ['✅ yes', '❌ no'], ev: ['big'] },
+    { t: 'I-t i-s v-er-y h-o-t.', pic: '🔥', type: 'Retrieval', q: 'Is it hot or cold?', o: ['🔥 hot', '❄️ cold'], ev: ['hot'] },
+    { t: 'C-oo-k-s m-a_e-k f-oo-d f-or th-e k-i-ng.', pic: '🍗', type: 'Retrieval', q: 'Who makes the food?', o: ['cooks', 'cats', 'kings'], ev: ['cooks'] },
+    { t: 'M-ea-t c-oo-k-s o-n th-e f-i_e-r.', pic: '🍖', type: 'Retrieval', q: 'Where does the meat cook?', o: ['🔥 on the fire', '❄️ in the snow', '🛁 in the bath'], ev: ['fire'] },
+    { t: 'Th-e k-i-ng h-a-s a b-i-g f-ea-s-t.', pic: '🍗', type: 'Yes or no', q: 'Does the king have a small meal?', o: ['✅ yes', '❌ no'], a: 1, ev: ['big', 'feast'] }
+  ] },
+  { id: 'MAH-MON-2b', title: 'Tom', bonus: '2026-11-24', s: [
+    { t: 'T-o-m c-a-rr-ie-s l-o-g-s.', pic: '🌳', type: 'Retrieval', q: 'What does Tom carry?', o: ['🌳 logs', '🥛 milk', '🍞 bread'], ev: ['logs'] },
+    { t: 'H-e p-u-t-s th-e-m o-n th-e f-i_e-r.', pic: '🔥', type: 'Retrieval', q: 'Where does he put them?', o: ['🔥 on the fire', '🛏️ on the bed', '🚗 in a car'], ev: ['fire'] },
+    { t: 'Th-e c-oo-k-s m-a_e-k p-ie-s.', pic: '🥧', type: 'Retrieval', q: 'What do the cooks make?', o: ['🥧 pies', '🍕 pizza', '🍦 ice cream'], ev: ['pies'] },
+    { t: 'T-o-m i-s h-u-n-g-r-y.', pic: '😋', type: 'Yes or no', q: 'Is Tom hungry?', o: ['✅ yes', '❌ no'], ev: ['hungry'] },
+    { t: 'Th-e c-oo-k g-i-ve-s T-o-m a p-ie.', pic: '🥧', type: 'Retrieval', q: 'What does Tom get?', o: ['🥧 a pie', '🍎 an apple', '🎁 a present'], ev: ['pie'] }
+  ] },
+  { id: 'MAH-MON-3a', title: 'Bess', bonus: '2026-11-25', s: [
+    { t: 'B-e-ss i-s r-i-ch.', pic: '💰', type: 'Yes or no', q: 'Is Bess rich?', o: ['✅ yes', '❌ no'], ev: ['rich'] },
+    { t: 'Sh-e b-ui-l-d-s a b-i-g h-ou-se.', pic: '🏠', type: 'Retrieval', q: 'What does Bess build?', o: ['🏠 a house', '🚢 a ship', '🚗 a car'], ev: ['house'] },
+    { t: 'Th-e h-ou-se h-a-s l-o-t-s o-f w-i-n-d-ow-s.', pic: '🏰', type: 'Retrieval', q: 'What does the house have lots of?', o: ['windows', 'doors', 'dogs'], ev: ['windows'] },
+    { t: 'Th-e w-i-n-d-ow-s ar-e b-i-g.', pic: '🏰', type: 'Yes or no', q: 'Are the windows small?', o: ['✅ yes', '❌ no'], a: 1, ev: ['big'] },
+    { t: 'Sh-e i-s v-er-y p-r-ou-d.', pic: '😀', type: 'Retrieval', q: 'How does Bess feel?', o: ['😀 proud', '😢 sad', '😠 cross'], ev: ['proud'] }
+  ] },
+  { id: 'MAH-MON-3b', title: 'School', bonus: '2026-11-25', s: [
+    { t: 'W-i-ll g-oe-s t-o s-ch-oo-l.', pic: '🏫', type: 'Retrieval', q: 'Where does Will go?', o: ['🏫 to school', '🏖️ to the beach', '🛒 to the shop'], ev: ['school'] },
+    { t: 'I-t i-s d-ar-k a-n-d c-o-l-d.', pic: '🌑', type: 'Yes or no', q: 'Is it dark?', o: ['✅ yes', '❌ no'], ev: ['dark'] },
+    { t: 'H-e h-a-s a b-oo-k m-a_e-d o-f w-oo-d.', pic: '📖', type: 'Retrieval', q: 'What is his book made of?', o: ['🌳 wood', '🧀 cheese', '❄️ ice'], ev: ['wood'] },
+    { t: 'Th-e b-oy-s r-ea-d a-l-ou-d.', pic: '📖', type: 'Yes or no', q: 'Do the boys read?', o: ['✅ yes', '❌ no'], ev: ['read'] },
+    { t: 'W-i-ll r-u-n-s h-o_e-m.', pic: '🏠', type: 'Retrieval', q: 'Where does Will run?', o: ['🏠 home', '🏫 to school', '🌊 to the sea'], ev: ['home'] }
+  ] },
+  { id: 'MAH-MON-4a', title: 'Ships in Bristol', bonus: '2026-11-26', s: [
+    { t: 'B-r-i-s-t-o-l h-a-s l-o-t-s o-f sh-i-p-s.', pic: '🚢', type: 'Retrieval', q: 'What does Bristol have lots of?', o: ['🚢 ships', '🚀 rockets', '🐘 elephants'], ev: ['ships'] },
+    { t: 'Th-e sh-i-p-s s-ai-l u-p th-e r-i-v-er.', pic: '⛵', type: 'Retrieval', q: 'Where do the ships sail?', o: ['up the river', 'up a hill', 'up a tree'], ev: ['river'] },
+    { t: 'M-e-n r-o-ll b-a-rr-e-l-s.', pic: '🛢️', type: 'Retrieval', q: 'What do the men roll?', o: ['barrels', 'balls', 'cars'], ev: ['barrels'] },
+    { t: 'G-u-ll-s s-qu-aw-k.', pic: '🐦', type: 'Yes or no', q: 'Are the gulls quiet?', o: ['✅ yes', '❌ no'], a: 1, ev: ['squawk'] },
+    { t: 'I-t i-s v-er-y b-u-s-y.', pic: '🚢', type: 'Yes or no', q: 'Is it busy?', o: ['✅ yes', '❌ no'], ev: ['busy'] }
+  ] },
+  { id: 'MAH-MON-4b', title: 'The market', bonus: '2026-11-26', s: [
+    { t: 'K-i-t g-oe-s t-o th-e m-ar-k-e-t.', pic: '🛒', type: 'Retrieval', q: 'Where does Kit go?', o: ['🛒 to the market', '🏫 to school', '🌊 to the sea'], ev: ['market'] },
+    { t: 'Th-ere i-s b-r-ea-d a-n-d ch-ee-se.', pic: '🧀', type: 'Retrieval', q: 'What is there?', o: ['🧀 cheese', '🍕 pizza', '🍫 chocolate'], ev: ['cheese'] },
+    { t: 'A m-a-n s-e-ll-s r-i-bb-o-n-s.', pic: '🎀', type: 'Retrieval', q: 'What does the man sell?', o: ['🎀 ribbons', '🎈 balloons', '📚 books'], ev: ['ribbons'] },
+    { t: 'D-a-d g-e-t-s K-i-t a r-e-d a-pp-le.', pic: '🍎', type: 'Retrieval', q: 'What does Kit get?', o: ['🍎 a red apple', '🍌 a banana', '🍇 grapes'], ev: ['apple'] },
+    { t: 'Sh-e ea-t-s i-t a-ll u-p.', pic: '😋', type: 'Yes or no', q: 'Does Kit eat the apple?', o: ['✅ yes', '❌ no'], ev: ['eats'] }
+  ] },
+  { id: 'MAH-MON-5a', title: 'Music', bonus: '2026-11-27', s: [
+    { t: 'Th-e qu-ee-n l-i_e-k-s m-u-s-i-c.', pic: '🎵', type: 'Retrieval', q: 'What does the queen like?', o: ['🎵 music', '⚽ football', '🐶 dogs'], ev: ['music'] },
+    { t: 'Sh-e c-a-n p-l-ay.', pic: '🎹', type: 'Yes or no', q: 'Can she play?', o: ['✅ yes', '❌ no'], ev: ['play'] },
+    { t: 'M-e-n b-ea-t d-r-u-m-s.', pic: '🥁', type: 'Retrieval', q: 'What do the men beat?', o: ['🥁 drums', '🚪 doors', '🍳 pans'], ev: ['drums'] },
+    { t: 'Th-e qu-ee-n d-a-n-ce-s.', pic: '💃', type: 'Yes or no', q: 'Does the queen dance?', o: ['✅ yes', '❌ no'], ev: ['dances'] },
+    { t: 'Sh-e s-p-i-n-s r-ou-n-d a-n-d r-ou-n-d.', pic: '💃', type: 'Retrieval', q: 'How does she spin?', o: ['round and round', 'up and down', 'in and out'], ev: ['round'] }
+  ] },
+  { id: 'MAH-MON-5b', title: 'A Tudor house', bonus: '2026-11-27', s: [
+    { t: 'Th-i-s i-s a T-u-d-or h-ou-se.', pic: '🏠', type: 'Yes or no', q: 'Is this a Tudor house?', o: ['✅ yes', '❌ no'], ev: ['house'] },
+    { t: 'I-t i-s b-l-a-ck a-n-d wh-i_e-t.', pic: '🏠', type: 'Retrieval', q: 'What colours is the house?', o: ['🖤 black and white', '❤️ red and blue', '💚 green'], ev: ['black', 'white'] },
+    { t: 'Th-e w-a-ll-s ar-e m-u-d.', pic: '🏠', type: 'Retrieval', q: 'What are the walls made of?', o: ['mud', 'glass', 'cake'], ev: ['mud'] },
+    { t: 'Th-e r-oo-f i-s s-t-r-aw.', pic: '🌾', type: 'Retrieval', q: 'What is the roof made of?', o: ['🌾 straw', '🍫 chocolate', '❄️ ice'], ev: ['straw'] },
+    { t: 'I-t i-s w-ar-m i-n-s-i_e-d.', pic: '🔥', type: 'Yes or no', q: 'Is it warm inside?', o: ['✅ yes', '❌ no'], ev: ['warm'] }
   ] }
 ];
 
@@ -878,6 +1163,366 @@ var MORE = {
     { type: 'Find the word', q: "Tap the word 'road'.", tap: ['road'] },
     { type: 'Retrieval', q: 'What does Bristol give her?', o: ['🎁 a gift', '🐶 a dog', '🚗 a car'], ev: ['gift'] },
     { type: 'Yes or no', q: 'Do men paint the gates?', o: ['✅ yes', '❌ no'], ev: ['paint'] }
+  ]],
+  'MON-5': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['The queen rode towards the gates.', 'A boy gave a speech.', 'The queen thanked the people.'] },
+    { type: 'Retrieval', q: 'What was sewn onto the gown?', o: ['pearls', 'feathers', 'shells'], ev: ['pearls'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the people were happy to see her.', tap: ['cheered'] },
+    { type: 'Vocabulary', q: "What is a 'speech'?", o: ['a talk given to people', 'a type of song', 'a letter'], ev: ['speech'] },
+    { type: 'Inference', q: "Why does the passage start with 'At last'?", o: ['People had waited a long time for this day.', 'The queen was late for tea.', 'It was the end of the visit.'], ev: ['last'] }
+  ], [
+    { type: 'Inference', q: 'How do you think the boy felt just before his speech?', o: ['nervous but excited', 'bored', 'sleepy'], ev: ['stepped', 'forward'] },
+    { type: 'Author choice', q: "Why does the author call it 'the great day'?", o: ['to show it was a very important day', 'to show it was very sunny', 'to show it was very long'], ev: ['great', 'day'] },
+    { type: 'True or false', q: 'True or false: nobody came to see the queen.', o: ['True', 'False'], a: 1, ev: ['crowds'], why: 'Crowds of people cheered.' },
+    { type: 'Prediction', q: 'What do you think the queen did next?', o: ['rode into the city to see Bristol', 'went straight home', 'went for a swim'], ev: ['city'] },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ["Bristol's welcome for the queen", 'The lost trumpet', 'A trip to the seaside'] }
+  ]],
+  'OMS-5a': [[
+    { type: 'Retrieval', q: 'Where do herring gulls live?', o: ['near the sea', 'in deserts', 'under the ground'], ev: ['near', 'sea'] },
+    { type: 'Vocabulary', q: "What is a 'chick'?", o: ['a baby bird', 'a type of fish', 'a small boat'], ev: ['chick'] },
+    { type: 'Evidence', q: "Tap a word that describes the gulls' beaks.", tap: ['strong', 'yellow'] },
+    { type: 'Inference', q: 'Why might gulls live near harbours?', o: ['There is lots of fish to eat there.', 'It is very quiet there.', 'There are no people there.'], ev: ['fish', 'harbours'] },
+    { type: 'True or false', q: 'True or false: gulls only eat fish.', o: ['True', 'False'], a: 1, ev: ['almost', 'anything'], why: 'They eat almost anything, even crisps.' }
+  ], [
+    { type: 'Author choice', q: "Why did the author write 'from fish to crisps'?", o: ['to show how many different foods gulls eat', 'to give us a recipe', 'to show gulls do not like crisps'], ev: ['fish', 'crisps'] },
+    { type: 'Vocabulary', q: "What does 'echoing' mean here?", o: ['the sound bouncing around', 'getting quieter', 'singing a song'], ev: ['echoing'] },
+    { type: 'Text type', q: 'Is this passage a story or a fact text?', o: ['a fact text', 'a story'], a: 0, ev: ['herring', 'gulls'], why: 'It gives true facts about gulls.' },
+    { type: 'Inference', q: 'Which word best describes a herring gull?', o: ['clever', 'shy', 'tiny'], ev: ['clever'], why: 'It says gulls are clever.' },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ['All about herring gulls', 'How to catch a fish', 'A day at school'] }
+  ]],
+  'OMS-5b': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Maya and Mum carried the kite up the cliff.', 'Maya let out the string.', 'The kite became a tiny dot.'] },
+    { type: 'Retrieval', q: 'Who went with Maya?', o: ['her mum', 'her grandad', 'her teacher'], ev: ['mum'] },
+    { type: 'Evidence', q: 'Tap a word that tells you it was windy.', tap: ['breezy', 'wind'] },
+    { type: 'Inference', q: 'Why did they go to the top of the cliff?', o: ['It is windy up high, so the kite can fly.', 'To go swimming.', 'To find a shop.'], ev: ['breezy', 'wind', 'top'] },
+    { type: 'Vocabulary', q: "What does 'pale' mean in 'pale blue sky'?", o: ['light', 'dark', 'bright red'], ev: ['pale'] }
+  ], [
+    { type: 'Author choice', q: "The author writes that the kite 'could not wait to fly'. What does this make the kite sound like?", o: ['an excited person', 'a tired person', 'a scared person'], ev: ['could', 'wait'] },
+    { type: 'Inference', q: "What does it mean that Maya felt she was 'holding a piece of the sky'?", o: ['The kite was so high it felt part of the sky.', 'She caught a cloud.', 'She was holding a blue balloon.'], ev: ['piece', 'sky'] },
+    { type: 'Find the word', q: 'Tap the word that means the kite went up.', tap: ['climbed'] },
+    { type: 'Prediction', q: 'What do you think Maya will do next?', o: ['slowly wind the kite back in', 'throw the kite in the sea', 'fall asleep on the cliff'], ev: ['string'] },
+    { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Maya flies her kite high in the sky.', 'Maya loses her kite.', 'Maya and Mum go swimming.'] }
+  ]],
+  'OMS-6a': [[
+    { type: 'Sequence', q: 'Put these in the order they happen.', order: ['Rain wears away the rocks.', 'Rivers carry the salt to the sea.', 'The sun warms the sea and some water rises.'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the rocks are worn away little by little.', tap: ['slowly'] },
+    { type: 'Retrieval', q: 'What wears the rocks away?', o: ['rain', 'wind', 'fish'], ev: ['rain'] },
+    { type: 'Vocabulary', q: "What does 'tiny' mean?", o: ['very small', 'very heavy', 'very old'], ev: ['tiny'] },
+    { type: 'Retrieval', q: 'What carries the salt to the sea?', o: ['rivers', 'boats', 'birds'], ev: ['rivers'] }
+  ], [
+    { type: 'Text type', q: 'Is this passage a story or a fact text?', o: ['a fact text', 'a story'], a: 0, ev: ['salt'], why: 'It explains a true fact about the sea.' },
+    { type: 'Author choice', q: 'Why does the author start by talking about swimming in the sea?', o: ['to help the reader remember tasting sea water', 'to teach us how to swim', 'to tell us about fish'], ev: ['swum', 'tastes'] },
+    { type: 'Inference', q: 'Where would you find the saltiest water?', o: ['in the ocean', 'in a rain puddle', 'in a river'], ev: ['oceans', 'salty'] },
+    { type: 'Vocabulary', q: "What does 'millions of years' tell you?", o: ['It took a very, very long time.', 'It took one day.', 'It happened last week.'], ev: ['millions'] },
+    { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Salt from rocks is carried to the sea and stays there.', 'Fish make the sea salty.', 'People pour salt into the sea.'] }
+  ]],
+  'OMS-6b': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Maya and Grandma walked to the bay.', 'Grandma pointed to seven stars.', 'Maya saw the silver path.'] },
+    { type: 'Inference', q: 'What time of day was it?', o: ['evening', 'morning', 'lunchtime'], ev: ['after', 'tea', 'stars'] },
+    { type: 'Evidence', q: 'Tap a word that tells you the bay was peaceful.', tap: ['quiet', 'calm'] },
+    { type: 'Retrieval', q: 'What made the silver path?', o: ['the moon', 'a boat', 'a torch'], ev: ['moon'] },
+    { type: 'Vocabulary', q: "What does 'wrapped up warm' mean?", o: ['put on warm clothes', 'went to bed', 'wrapped a present'], ev: ['wrapped', 'warm'] }
+  ], [
+    { type: 'Author choice', q: "Why does the author say the moon had 'drawn' a path?", o: ['to make the moonlight sound like a picture', 'because the moon had a pencil', 'to show the path was dark'], ev: ['drawn', 'path'] },
+    { type: 'Inference', q: 'Why did sailors use the stars?', o: ['to help them know which way to go', 'to light up their boats', 'to tell them when to eat'], ev: ['find', 'way'] },
+    { type: 'True or false', q: 'True or false: it was a cloudy night.', o: ['True', 'False'], a: 1, ev: ['clear'], why: 'The sky was clear.' },
+    { type: 'Prediction', q: 'What do you think Maya and Grandma will do next?', o: ['walk home and go to bed', 'go for a swim', 'build a sandcastle'], ev: ['after', 'tea'] },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ['A night under the stars', 'The busy beach', 'A trip to the shops'] }
+  ]],
+  'MON-1a': [[
+    { type: 'Retrieval', q: 'Who watches over the jewels?', o: ['guards', 'children', 'cats'], ev: ['guards'] },
+    { type: 'Vocabulary', q: "What is a 'collection'?", o: ['a group of things kept together', 'one single ring', 'a type of crown'], ev: ['collection'] },
+    { type: 'Evidence', q: 'Tap the word that tells you lots of people visit.', tap: ['millions'] },
+    { type: 'Inference', q: 'Why do guards watch the jewels day and night?', o: ['They are very precious, so they must be kept safe.', 'The guards are bored.', 'The jewels might run away.'], ev: ['safe', 'guards'] },
+    { type: 'True or false', q: 'True or false: the monarch wears the coronation crown all day.', o: ['True', 'False'], a: 1, ev: ['short'], why: 'It is so heavy that it is only worn for a short time.' }
+  ], [
+    { type: 'Text type', q: 'Is this passage a story or a fact text?', o: ['a fact text', 'a story'], a: 0, ev: ['jewels'], why: 'It gives true facts about the Crown Jewels.' },
+    { type: 'Vocabulary', q: "What does 'queue up' mean?", o: ['wait in a line', 'run away', 'shout loudly'], ev: ['queue'] },
+    { type: 'Inference', q: 'Why do you think so many people want to see the jewels?', o: ['They are special and very beautiful.', 'They can take them home.', 'They are free sweets.'], ev: ['glittering', 'famous'] },
+    { type: 'Author choice', q: "Why did the author use the word 'treasures'?", o: ['to show the objects are precious and special', 'to show they are buried', 'to show they are toys'], ev: ['treasures'] },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ["The monarch's precious jewels", 'How to make a crown', 'A day at the beach'] }
+  ]],
+  'MON-1b': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Amira heard the King was coming.', 'Amira made a card.', 'The King took the card.'] },
+    { type: 'Inference', q: 'How did Amira feel when the King took her card?', o: ['thrilled', 'bored', 'angry'], ev: ['heart', 'skip'] },
+    { type: 'Retrieval', q: 'Where did Amira stand?', o: ['at the front of the crowd', 'at the back of the crowd', 'inside the hospital'], ev: ['front', 'crowd'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the paper was not thin.', tap: ['thick'] },
+    { type: 'Vocabulary', q: "What is a 'crowd'?", o: ['lots of people together', 'a type of hat', 'a big hospital'], ev: ['crowd'] }
+  ], [
+    { type: 'Author choice', q: "What does 'her heart did a little skip' tell us?", o: ['She felt a sudden rush of excitement.', 'She was skipping down the road.', 'She felt poorly.'], ev: ['heart', 'skip'] },
+    { type: 'Inference', q: 'Why did Amira use her neatest handwriting?', o: ['She wanted the card to look special for the King.', 'She was in a hurry.', 'She wanted it to be hard to read.'], ev: ['neatest'] },
+    { type: 'Prediction', q: 'What do you think Amira will do when she gets home?', o: ['tell her family all about meeting the King', 'forget all about it', 'make a card for a dog'], ev: ['king'] },
+    { type: 'True or false', q: 'True or false: the King walked straight past Amira.', o: ['True', 'False'], a: 1, ev: ['stopped', 'smiled', 'took'], why: 'He stopped, smiled and took her card.' },
+    { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Amira makes a card and gives it to the King.', 'Amira visits a hospital because she is ill.', 'Amira draws a crown for her teacher.'] }
+  ]],
+  'MON-2a': [[
+    { type: 'Retrieval', q: 'Who did the kitchens feed?', o: ['the king and his court', 'the people of Bristol', 'only the cooks'], ev: ['king', 'court'] },
+    { type: 'Vocabulary', q: "What is a 'palace'?", o: ['a very grand home for a king or queen', 'a small cottage', 'a kitchen'], ev: ['palaces'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the meat was turned gently.', tap: ['slowly'] },
+    { type: 'Inference', q: 'Why were so many cooks needed?', o: ['There were lots of people to feed.', 'The cooks were very slow.', 'The king did not like food.'], ev: ['hundreds', 'feed'] },
+    { type: 'True or false', q: 'True or false: Hampton Court had only one small kitchen.', o: ['True', 'False'], a: 1, ev: ['dozens', 'rooms'], why: 'It had dozens of rooms.' }
+  ], [
+    { type: 'Text type', q: 'Is this passage a story or a fact text?', o: ['a fact text', 'a story'], a: 0, ev: ['hampton', 'court'], why: 'It gives true facts about Hampton Court.' },
+    { type: 'Author choice', q: "Why does the author list 'baking, boiling and roasting'?", o: ['to show all the kinds of cooking that happened', 'to give us a recipe', 'to show the cooks were lazy'], ev: ['baking', 'boiling', 'roasting'] },
+    { type: 'Vocabulary', q: "What does 'favourite' mean?", o: ['the one you like best', 'the one you like least', 'the oldest one'], ev: ['favourite'] },
+    { type: 'Inference', q: "Why does the author say the kitchens 'must have been' noisy?", o: ['The author is making a sensible guess from the facts.', 'The author worked there.', 'It says so on a sign.'], ev: ['must'] },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ["Inside Henry's busy kitchens", 'A quiet day by the river', 'How to build a palace'] }
+  ]],
+  'MON-2b': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Tom carried logs to the fires.', 'The cooks rushed past with trays.', 'The head cook gave Tom a pie.'] },
+    { type: 'Inference', q: 'Why did everything have to be perfect?', o: ['The king was holding a feast.', 'Tom was going home.', 'The kitchen was closing.'], ev: ['king', 'feast'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the cooks moved quickly.', tap: ['rushed'] },
+    { type: 'Vocabulary', q: "What does 'drifted' mean?", o: ['moved slowly through the air', 'fell to the floor', 'stopped still'], ev: ['drifted'] },
+    { type: 'Retrieval', q: 'When did Tom start work?', o: ['before dawn', 'at lunchtime', 'after tea'], ev: ['before', 'dawn'] }
+  ], [
+    { type: 'Inference', q: 'What kind of worker was Tom?', o: ['hard-working', 'lazy', 'careless'], ev: ['awake', 'carrying'] },
+    { type: 'Author choice', q: "Why does the author list 'pies, roasted swans and sugary sweets'?", o: ['to show how grand the feast was', 'to show the food was burnt', 'to show Tom cooked it all'], ev: ['pies', 'swans', 'sweets'] },
+    { type: 'True or false', q: 'True or false: Tom ate at the feast with the king.', o: ['True', 'False'], a: 1, ev: ['head', 'cook', 'gave'], why: 'The head cook gave him a pie in the kitchen.' },
+    { type: 'Inference', q: 'Why do you think the head cook gave Tom a pie?', o: ['to thank him for working so hard', 'because the pie was burnt', 'because the king told him to'], ev: ['gave'] },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ["A kitchen boy's long day", 'The king goes hunting', 'Tom bakes a cake'] }
+  ]],
+  'MON-3a': [[
+    { type: 'Retrieval', q: 'Which of these did Bess own?', o: ['farms', 'ships', 'a zoo'], ev: ['farms'] },
+    { type: 'Evidence', q: 'Tap the word that tells you Bess had lots of money.', tap: ['richest'] },
+    { type: 'Vocabulary', q: "What does 'planned' mean here?", o: ['decided how it would look', 'knocked it down', 'painted it'], ev: ['planned'] },
+    { type: 'Retrieval', q: 'Where did Bess put her initials?', o: ['on the roof', 'on the front door', 'on a flag'], ev: ['roof'] },
+    { type: 'True or false', q: 'True or false: Bess was a powerful woman.', o: ['True', 'False'], a: 0, ev: ['powerful'], why: 'She was one of the most powerful women in Tudor England.' }
+  ], [
+    { type: 'Text type', q: 'Is this passage a story or a fact text?', o: ['a fact text', 'a story'], a: 0, ev: ['bess'], why: 'It tells us true facts about a real person.' },
+    { type: 'Inference', q: 'Why did Bess put her initials on the roof?', o: ['so everyone would know it was her house', 'to tell the time', 'to scare the birds'], ev: ['initials', 'proudly'] },
+    { type: 'Vocabulary', q: "What are 'initials'?", o: ['the first letters of your names', 'your favourite colours', 'the rooms in a house'], ev: ['initials'] },
+    { type: 'Inference', q: 'Which word best describes Bess?', o: ['confident', 'shy', 'lazy'], ev: ['powerful', 'clever', 'proudly'] },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ['Bess, the powerful builder', 'The broken window', 'A queen goes sailing'] }
+  ]],
+  'MON-3b': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Will got to school at six.', 'The boys chanted their lessons.', 'The bell rang and Will raced out.'] },
+    { type: 'Inference', q: 'Was it light or dark when Will went to school in winter?', o: ['dark', 'light'], a: 0, ev: ['six', 'winter'], why: 'At six in the morning in winter it is still dark.' },
+    { type: 'Evidence', q: 'Tap the word that tells you the boys said their lessons together out loud.', tap: ['chanted'] },
+    { type: 'Retrieval', q: 'What was the hornbook made from?', o: ['wood', 'paper', 'metal'], ev: ['wooden'] },
+    { type: 'Vocabulary', q: "What does 'finally' mean?", o: ['at last, after a long wait', 'very early', 'by mistake'], ev: ['finally'] }
+  ], [
+    { type: 'Inference', q: 'How do you think Will felt when the bell rang?', o: ['glad the long day was over', 'sad to go home', 'angry with the bell'], ev: ['finally', 'raced'] },
+    { type: 'Author choice', q: "Why does the author write 'even in winter'?", o: ['to show school started early all year, even when it was cold and dark', 'to show Will liked snow', 'to show school was shut in winter'], ev: ['even', 'winter'] },
+    { type: 'True or false', q: 'True or false: Tudor school days were short.', o: ['True', 'False'], a: 1, ev: ['all', 'day'], why: 'School started at six and went on all day.' },
+    { type: 'Inference', q: "How was Will's school different from yours?", o: ['It started much earlier.', 'It had iPads.', 'It had no lessons.'], ev: ['six'] },
+    { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Will has a long, hard day at a Tudor school.', 'Will plays games all day.', 'Will makes a hornbook for his teacher.'] }
+  ]],
+  'MON-4a': [[
+    { type: 'Retrieval', q: 'Where did the ships tie up?', o: ['at the quay', 'on the beach', 'under a bridge'], ev: ['quay'] },
+    { type: 'Vocabulary', q: "What does 'unloaded' mean?", o: ['took things off', 'put things on', 'painted'], ev: ['unloaded'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the ships were high.', tap: ['tall'] },
+    { type: 'Retrieval', q: 'Which two countries did the wine come from?', o: ['France and Spain', 'Wales and Scotland', 'Italy and Egypt'], ev: ['france', 'spain'] },
+    { type: 'True or false', q: 'True or false: Tudor Bristol was a quiet town.', o: ['True', 'False'], a: 1, ev: ['busiest', 'shouting'], why: 'It was one of the busiest ports in England.' }
+  ], [
+    { type: 'Text type', q: 'Is this passage a story or a fact text?', o: ['a fact text', 'a story'], a: 0, ev: ['bristol'], why: 'It gives true facts about Bristol long ago.' },
+    { type: 'Author choice', q: "Why does the author describe 'shouting traders, rolling barrels and squawking gulls'?", o: ['to help us imagine the busy sounds of the quay', 'to tell us the gulls were angry', 'to show the quay was empty'], ev: ['shouting', 'rolling', 'squawking'] },
+    { type: 'Inference', q: 'Why do you think Bristol grew rich in Tudor times?', o: ['Lots of buying and selling happened at its port.', 'It had a big castle.', 'It had no ships.'], ev: ['busiest', 'sell'] },
+    { type: 'Vocabulary', q: "What is a 'trader'?", o: ['someone who buys and sells things', 'someone who sails', 'someone who cooks'], ev: ['traders'] },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ['Busy Tudor Bristol', 'A quiet day at sea', 'How to make wine'] }
+  ]],
+  'MON-4b': [[
+    { type: 'Sequence', q: 'Put these in the order they happened.', order: ['Kit and her father pushed through the market.', 'A man called out about ribbons.', 'Kit crunched her apple on the way home.'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the market was full of people.', tap: ['crowded'] },
+    { type: 'Inference', q: "Why did Kit hold her father's hand tightly?", o: ['so she would not get lost in the crowd', 'because she was cold', 'to stop him buying apples'], ev: ['tightly', 'crowded'] },
+    { type: 'Retrieval', q: 'What did the man sell?', o: ['ribbons', 'fish', 'hats'], ev: ['ribbons'] },
+    { type: 'Vocabulary', q: "What is a 'stall'?", o: ['a table where things are sold at a market', 'a type of horse', 'a kind of cake'], ev: ['stalls'] }
+  ], [
+    { type: 'Inference', q: 'How do you think Kit felt about her apple?', o: ['pleased, because it was just for her', 'cross, because it was sour', 'bored'], ev: ['just', 'her'] },
+    { type: 'Author choice', q: "Why does the author say Kit 'crunched it slowly'?", o: ['to show she wanted it to last', 'to show it was too hard to eat', 'to show she was in a rush'], ev: ['slowly'] },
+    { type: 'True or false', q: "True or false: Kit's father bought her a ribbon.", o: ['True', 'False'], a: 1, ev: ['apple'], why: 'He bought her an apple.' },
+    { type: 'Prediction', q: 'What do you think they will do with the bread and cheese?', o: ['eat them at home', 'sell them', 'give them to the gulls'], ev: ['loaf', 'cheese'] },
+    { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Kit visits a busy Tudor market with her father.', 'Kit sells apples at the market.', 'Kit gets lost in Bristol.'] }
+  ]],
+  'MON-5a': [[
+    { type: 'Retrieval', q: 'Which instruments did musicians play at feasts?', o: ['lutes, pipes and drums', 'guitars and violins', 'pianos and trumpets'], ev: ['lutes', 'pipes', 'drums'] },
+    { type: 'Vocabulary', q: "What is an 'instrument'?", o: ['something you play music on', 'a kind of food', 'a dance'], ev: ['instrument'] },
+    { type: 'Evidence', q: 'Tap a word that tells you the virginals were not big.', tap: ['small', 'tiny'] },
+    { type: 'Inference', q: 'Why might there be music at a feast?', o: ['to make it fun and special', 'to wake people up', 'to keep people quiet'], ev: ['feasts', 'musicians'] },
+    { type: 'Retrieval', q: 'What did the virginals have, like a piano?', o: ['keys', 'wheels', 'wings'], ev: ['keys'] }
+  ], [
+    { type: 'Text type', q: 'Is this passage a story or a fact text?', o: ['a fact text', 'a story'], a: 0, ev: ['music'], why: 'It gives true facts about Tudor music.' },
+    { type: 'Author choice', q: "Why does the author say 'from royal palaces to village fields'?", o: ['to show that rich and ordinary people both enjoyed music', 'to show music was only for kings', 'to tell us where fields are'], ev: ['palaces', 'village'] },
+    { type: 'Vocabulary', q: "What does 'twirled' mean?", o: ['spun round and round', 'sat still', 'fell over'], ev: ['twirled'] },
+    { type: 'Inference', q: 'What does this passage tell us about Elizabeth?', o: ['She enjoyed music and dancing.', 'She did not like music.', 'She could not dance.'], ev: ['loved', 'dancer'] },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ['Music and dancing in Tudor times', 'How to build a piano', 'A quiet Tudor village'] }
+  ]],
+  'MON-5b': [[
+    { type: 'Retrieval', q: 'What was wattle?', o: ['a criss-cross of thin sticks', 'a sticky mix of mud', 'a glass window'], ev: ['sticks'] },
+    { type: 'Vocabulary', q: "What does 'sticky' mean?", o: ['able to stick to things', 'very dry', 'very hot'], ev: ['sticky'] },
+    { type: 'Evidence', q: 'Tap the word that tells you the beams were not thin.', tap: ['thick'] },
+    { type: 'Inference', q: 'Why do you think poorer families did not have glass windows?', o: ['Glass cost too much for them.', 'They did not like light.', 'Glass had not been invented.'], ev: ['rich', 'poorer'] },
+    { type: 'True or false', q: 'True or false: all Tudor families had glass windows.', o: ['True', 'False'], a: 1, ev: ['poorer', 'shutters'], why: 'Poorer families used wooden shutters.' }
+  ], [
+    { type: 'Text type', q: 'Is this passage a story or a fact text?', o: ['a fact text', 'a story'], a: 0, ev: ['tudor', 'houses'], why: 'It gives true facts about Tudor houses.' },
+    { type: 'Inference', q: 'Why do you think daub was sticky?', o: ['so it would hold onto the sticks and stay in the wall', 'so it would taste nice', 'so it would melt'], ev: ['sticky'] },
+    { type: 'Vocabulary', q: "What are 'shutters'?", o: ['wooden covers for windows', 'glass doors', 'roof tiles'], ev: ['shutters'] },
+    { type: 'Author choice', q: "Why does the author explain what 'wattle' and 'daub' mean?", o: ['because readers may not know these old words', 'because they are names of people', 'to make the passage shorter'], ev: ['wattle', 'daub'] },
+    { type: 'Summarise', q: 'Which is the best title for this passage?', o: ['How Tudor houses were built', 'A day at a Tudor school', 'The queen visits Bristol'] }
+  ]],
+  'MAH-MON-5': [[
+    { type: 'Find the word', q: "Tap the word 'queen'.", tap: ['queen'] },
+    { type: 'Retrieval', q: 'What does the crowd do?', o: ['🎉 cheers', '😴 sleeps', '😢 cries'], ev: ['cheers'] },
+    { type: 'Yes or no', q: 'Does a boy say hello?', o: ['✅ yes', '❌ no'], ev: ['boy'] },
+    { type: 'Find the word', q: "Tap the word 'gown'.", tap: ['gown'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['👸 The queen rides to Bristol.', '🎉 A big crowd cheers.', '👦 A boy says hello.'] },
+    { type: 'Find the word', q: "Tap the word 'glad'.", tap: ['glad'] },
+    { type: 'Retrieval', q: 'Where does the queen ride to?', o: ['Bristol', 'London', 'the beach'], ev: ['bristol'] },
+    { type: 'Yes or no', q: 'Is the queen cross?', o: ['✅ yes', '❌ no'], a: 1, ev: ['glad'] }
+  ]],
+  'MAH-OMS-5a': [[
+    { type: 'Find the word', q: "Tap the word 'gull'.", tap: ['gull'] },
+    { type: 'Retrieval', q: 'What does the gull eat?', o: ['🐟 fish', '🍕 pizza', '🍌 bananas'], ev: ['fish'] },
+    { type: 'Yes or no', q: 'Is the beak yellow?', o: ['✅ yes', '❌ no'], ev: ['yellow'] },
+    { type: 'Find the word', q: "Tap the word 'beak'.", tap: ['beak'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🐦 A gull is white and grey.', '💛 It has a yellow beak.', '🐟 It eats fish.'] },
+    { type: 'Find the word', q: "Tap the word 'loud'.", tap: ['loud'] },
+    { type: 'Retrieval', q: 'What can the gull do?', o: ['🐦 fly', '📖 read', '🚗 drive'], ev: ['fly'] },
+    { type: 'Yes or no', q: 'Is the gull green?', o: ['✅ yes', '❌ no'], a: 1, ev: ['white'] }
+  ]],
+  'MAH-OMS-5b': [[
+    { type: 'Find the word', q: "Tap the word 'kite'.", tap: ['kite'] },
+    { type: 'Retrieval', q: 'Who has a kite?', o: ['👧 Maya', '👴 Grandad', '👑 a king'], ev: ['maya'] },
+    { type: 'Yes or no', q: 'Does the kite go down?', o: ['✅ yes', '❌ no'], a: 1, ev: ['up'] },
+    { type: 'Find the word', q: "Tap the word 'wind'.", tap: ['wind'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['❤️ Maya has a red kite.', '⬆️ The kite goes up and up.', '😀 Maya is so happy.'] },
+    { type: 'Find the word', q: "Tap the word 'sky'.", tap: ['sky'] },
+    { type: 'Retrieval', q: 'How does Maya feel?', o: ['😀 happy', '😢 sad', '😠 cross'], ev: ['happy'] },
+    { type: 'Yes or no', q: 'Is the wind strong?', o: ['✅ yes', '❌ no'], ev: ['strong'] }
+  ]],
+  'MAH-OMS-6a': [[
+    { type: 'Find the word', q: "Tap the word 'rain'.", tap: ['rain'] },
+    { type: 'Retrieval', q: 'Where do rivers run to?', o: ['🌊 the sea', '🌙 the moon', '🌳 a tree'], ev: ['sea'] },
+    { type: 'Yes or no', q: 'Is the sea salty?', o: ['✅ yes', '❌ no'], ev: ['salty'] },
+    { type: 'Find the word', q: "Tap the word 'rocks'.", tap: ['rocks'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🌧️ Rain falls on the rocks.', '🏞️ Rivers run to the sea.', '🌊 The salt stays in the sea.'] },
+    { type: 'Find the word', q: "Tap the word 'sun'.", tap: ['sun'] },
+    { type: 'Retrieval', q: 'What falls on the rocks?', o: ['🌧️ rain', '❄️ snow', '🍎 apples'], ev: ['rain'] },
+    { type: 'Yes or no', q: 'Is the sea sweet?', o: ['✅ yes', '❌ no'], a: 1, ev: ['salty'] }
+  ]],
+  'MAH-OMS-6b': [[
+    { type: 'Find the word', q: "Tap the word 'moon'.", tap: ['moon'] },
+    { type: 'Retrieval', q: 'Where do they go?', o: ['🌊 to the bay', '🏫 to school', '🛒 to the shop'], ev: ['bay'] },
+    { type: 'Yes or no', q: 'Is it day?', o: ['✅ yes', '❌ no'], a: 1, ev: ['night'] },
+    { type: 'Find the word', q: "Tap the word 'stars'.", tap: ['stars'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🌃 It is night.', '⭐ The stars are bright.', '🌙 The moon is silver.'] },
+    { type: 'Find the word', q: "Tap the word 'bay'.", tap: ['bay'] },
+    { type: 'Retrieval', q: 'What is silver?', o: ['🌙 the moon', '☀️ the sun', '🌳 a tree'], ev: ['moon'] },
+    { type: 'Yes or no', q: 'Are the stars bright?', o: ['✅ yes', '❌ no'], ev: ['bright'] }
+  ]],
+  'MAH-MON-1a': [[
+    { type: 'Find the word', q: "Tap the word 'crown'.", tap: ['crown'] },
+    { type: 'Retrieval', q: 'What colour is the crown?', o: ['💛 gold', '❤️ red', '💙 blue'], ev: ['gold'] },
+    { type: 'Yes or no', q: 'Is the crown light?', o: ['✅ yes', '❌ no'], a: 1, ev: ['heavy'] },
+    { type: 'Find the word', q: "Tap the word 'jewels'.", tap: ['jewels'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['👑 The king has a crown.', '💎 It has red jewels.', '🏰 Men keep it safe.'] },
+    { type: 'Find the word', q: "Tap the word 'safe'.", tap: ['safe'] },
+    { type: 'Retrieval', q: 'Who has a crown?', o: ['🤴 the king', '👦 a boy', '🐱 a cat'], ev: ['king'] },
+    { type: 'Yes or no', q: 'Does the crown have jewels?', o: ['✅ yes', '❌ no'], ev: ['jewels'] }
+  ]],
+  'MAH-MON-1b': [[
+    { type: 'Find the word', q: "Tap the word 'card'.", tap: ['card'] },
+    { type: 'Retrieval', q: 'Who makes a card?', o: ['👧 Amira', '🤴 the king', '👵 Grandma'], ev: ['amira'] },
+    { type: 'Yes or no', q: 'Does the king smile?', o: ['✅ yes', '❌ no'], ev: ['smiles'] },
+    { type: 'Find the word', q: "Tap the word 'king'.", tap: ['king'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['✉️ Amira makes a card.', '🤴 The king comes to town.', '😀 The king smiles.'] },
+    { type: 'Find the word', q: "Tap the word 'draws'.", tap: ['draws'] },
+    { type: 'Retrieval', q: 'What is on the card?', o: ['👑 a crown', '⭐ a star', '🌳 a tree'], ev: ['crown'] },
+    { type: 'Yes or no', q: 'Does Amira keep the card?', o: ['✅ yes', '❌ no'], a: 1, ev: ['gives'] }
+  ]],
+  'MAH-MON-2a': [[
+    { type: 'Find the word', q: "Tap the word 'hot'.", tap: ['hot'] },
+    { type: 'Retrieval', q: 'What cooks on the fire?', o: ['🍖 meat', '🍦 ice cream', '🍌 bananas'], ev: ['meat'] },
+    { type: 'Yes or no', q: 'Is the kitchen small?', o: ['✅ yes', '❌ no'], a: 1, ev: ['big'] },
+    { type: 'Find the word', q: "Tap the word 'cooks'.", tap: ['cooks'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🔥 It is very hot.', '🍖 Meat cooks on the fire.', '🍗 The king has a big feast.'] },
+    { type: 'Find the word', q: "Tap the word 'food'.", tap: ['food'] },
+    { type: 'Retrieval', q: 'Who has a feast?', o: ['🤴 the king', '👦 a boy', '🐶 a dog'], ev: ['king'] },
+    { type: 'Yes or no', q: 'Is it cold in the kitchen?', o: ['✅ yes', '❌ no'], a: 1, ev: ['hot'] }
+  ]],
+  'MAH-MON-2b': [[
+    { type: 'Find the word', q: "Tap the word 'logs'.", tap: ['logs'] },
+    { type: 'Retrieval', q: 'Who carries logs?', o: ['👦 Tom', '🤴 the king', '🐶 a dog'], ev: ['tom'] },
+    { type: 'Yes or no', q: 'Does Tom get a pie?', o: ['✅ yes', '❌ no'], ev: ['pie'] },
+    { type: 'Find the word', q: "Tap the word 'fire'.", tap: ['fire'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🌳 Tom carries logs.', '🥧 The cooks make pies.', '😋 The cook gives Tom a pie.'] },
+    { type: 'Find the word', q: "Tap the word 'hungry'.", tap: ['hungry'] },
+    { type: 'Retrieval', q: 'What do the cooks make?', o: ['🥧 pies', '🍰 cakes', '🍞 bread'], ev: ['pies'] },
+    { type: 'Yes or no', q: 'Is Tom full up?', o: ['✅ yes', '❌ no'], a: 1, ev: ['hungry'] }
+  ]],
+  'MAH-MON-3a': [[
+    { type: 'Find the word', q: "Tap the word 'house'.", tap: ['house'] },
+    { type: 'Retrieval', q: 'Who builds a house?', o: ['👩 Bess', '🤴 the king', '👦 Tom'], ev: ['bess'] },
+    { type: 'Yes or no', q: 'Is Bess rich?', o: ['✅ yes', '❌ no'], ev: ['rich'] },
+    { type: 'Find the word', q: "Tap the word 'windows'.", tap: ['windows'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['💰 Bess is rich.', '🏠 She builds a big house.', '😀 She is very proud.'] },
+    { type: 'Find the word', q: "Tap the word 'proud'.", tap: ['proud'] },
+    { type: 'Retrieval', q: 'What are big?', o: ['the windows', 'the dogs', 'the cups'], ev: ['windows'] },
+    { type: 'Yes or no', q: 'Does Bess build a ship?', o: ['✅ yes', '❌ no'], a: 1, ev: ['house'] }
+  ]],
+  'MAH-MON-3b': [[
+    { type: 'Find the word', q: "Tap the word 'school'.", tap: ['school'] },
+    { type: 'Retrieval', q: 'Who goes to school?', o: ['👦 Will', '👧 Maya', '🤴 the king'], ev: ['will'] },
+    { type: 'Yes or no', q: 'Is it hot?', o: ['✅ yes', '❌ no'], a: 1, ev: ['cold'] },
+    { type: 'Find the word', q: "Tap the word 'book'.", tap: ['book'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🏫 Will goes to school.', '📖 The boys read aloud.', '🏠 Will runs home.'] },
+    { type: 'Find the word', q: "Tap the word 'dark'.", tap: ['dark'] },
+    { type: 'Retrieval', q: 'What is the book made of?', o: ['🌳 wood', '🍞 bread', '❄️ ice'], ev: ['wood'] },
+    { type: 'Yes or no', q: 'Does Will walk home slowly?', o: ['✅ yes', '❌ no'], a: 1, ev: ['runs'] }
+  ]],
+  'MAH-MON-4a': [[
+    { type: 'Find the word', q: "Tap the word 'ships'.", tap: ['ships'] },
+    { type: 'Retrieval', q: 'What squawks?', o: ['🐦 gulls', '🐶 dogs', '🐱 cats'], ev: ['gulls'] },
+    { type: 'Yes or no', q: 'Is it quiet?', o: ['✅ yes', '❌ no'], a: 1, ev: ['busy'] },
+    { type: 'Find the word', q: "Tap the word 'river'.", tap: ['river'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['⛵ The ships sail up the river.', '🛢️ Men roll barrels.', '🐦 Gulls squawk.'] },
+    { type: 'Find the word', q: "Tap the word 'busy'.", tap: ['busy'] },
+    { type: 'Retrieval', q: 'Which city has lots of ships?', o: ['Bristol', 'London', 'Paris'], ev: ['bristol'] },
+    { type: 'Yes or no', q: 'Do the ships sail?', o: ['✅ yes', '❌ no'], ev: ['sail'] }
+  ]],
+  'MAH-MON-4b': [[
+    { type: 'Find the word', q: "Tap the word 'market'.", tap: ['market'] },
+    { type: 'Retrieval', q: 'What colour is the apple?', o: ['❤️ red', '💙 blue', '🖤 black'], ev: ['red'] },
+    { type: 'Yes or no', q: 'Does the man sell ribbons?', o: ['✅ yes', '❌ no'], ev: ['ribbons'] },
+    { type: 'Find the word', q: "Tap the word 'bread'.", tap: ['bread'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🛒 Kit goes to the market.', '🎀 A man sells ribbons.', '🍎 Dad gets Kit a red apple.'] },
+    { type: 'Find the word', q: "Tap the word 'cheese'.", tap: ['cheese'] },
+    { type: 'Retrieval', q: 'Who gets Kit an apple?', o: ['👨 Dad', '👸 the queen', '👵 Grandma'], ev: ['dad'] },
+    { type: 'Yes or no', q: 'Does Kit throw the apple away?', o: ['✅ yes', '❌ no'], a: 1, ev: ['eats'] }
+  ]],
+  'MAH-MON-5a': [[
+    { type: 'Find the word', q: "Tap the word 'music'.", tap: ['music'] },
+    { type: 'Retrieval', q: 'What do the men beat?', o: ['🥁 drums', '🍳 pans', '🐶 dogs'], ev: ['drums'] },
+    { type: 'Yes or no', q: 'Does the queen like music?', o: ['✅ yes', '❌ no'], ev: ['likes'] },
+    { type: 'Find the word', q: "Tap the word 'dances'.", tap: ['dances'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🎵 The queen likes music.', '🥁 Men beat drums.', '💃 The queen dances.'] },
+    { type: 'Find the word', q: "Tap the word 'spins'.", tap: ['spins'] },
+    { type: 'Retrieval', q: 'Who likes music?', o: ['👸 the queen', '🐱 a cat', '👦 Tom'], ev: ['queen'] },
+    { type: 'Yes or no', q: 'Can she play?', o: ['✅ yes', '❌ no'], ev: ['play'] }
+  ]],
+  'MAH-MON-5b': [[
+    { type: 'Find the word', q: "Tap the word 'house'.", tap: ['house'] },
+    { type: 'Retrieval', q: 'What is the roof?', o: ['🌾 straw', '🍫 chocolate', '🧀 cheese'], ev: ['straw'] },
+    { type: 'Yes or no', q: 'Are the walls mud?', o: ['✅ yes', '❌ no'], ev: ['mud'] },
+    { type: 'Find the word', q: "Tap the word 'black'.", tap: ['black'] }
+  ], [
+    { type: 'Sequence', q: 'Put them in order.', order: ['🏠 This is a Tudor house.', '🌾 The roof is straw.', '🔥 It is warm inside.'] },
+    { type: 'Find the word', q: "Tap the word 'roof'.", tap: ['roof'] },
+    { type: 'Retrieval', q: 'What colour is the house?', o: ['🖤 black and white', '💙 blue', '💛 yellow'], ev: ['black', 'white'] },
+    { type: 'Yes or no', q: 'Is it cold inside?', o: ['✅ yes', '❌ no'], a: 1, ev: ['warm'] }
   ]]
 };
 
@@ -887,7 +1532,7 @@ function openAdults() {
   document.getElementById('aQueue').textContent = 'Answers waiting to send on this iPad: ' + outbox().length;
   var sel = document.getElementById('aPass'); sel.innerHTML = '';
   sel.appendChild(el('option', { value: '' }, 'Automatic (by date)'));
-  PASSAGES.forEach(function (p, i) { sel.appendChild(el('option', { value: String(i) }, (i + 1) + '. ' + p.title + ' (' + p.date.slice(8) + '/' + p.date.slice(5, 7) + ')')); });
+  PASSAGES.forEach(function (p, i) { if (p.date) sel.appendChild(el('option', { value: String(i) }, p.title + ' (' + p.date.slice(8) + '/' + p.date.slice(5, 7) + ')')); });
   var ov = sget('override', null); sel.value = ov && ov.date === todayStr() ? String(ov.i) : '';
   adults.classList.add('open');
 }
