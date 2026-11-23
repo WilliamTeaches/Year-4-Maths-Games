@@ -88,6 +88,18 @@ h2 { font-size: 30px; font-weight: normal; margin: 0 0 14px; }
 .rowHint { text-align: center; color: var(--muted); font-size: 19px; margin: -10px 0 14px; min-height: 26px; }
 .pool { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; min-height: 70px; }
 .chip { display: inline-block; border-radius: 10px; padding: 2px 10px; margin: 2px; }
+/* colour coded reason: why it is or is not a complete idea */
+.proofRow { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; font-size: 30px; margin: 8px 0; color: var(--ink); }
+.show .proofRow { font-size: 34px; }
+.proofRow .chip { padding: 4px 12px; margin: 0; }
+.proofRow .r-stop { min-width: 0; font-size: inherit; }
+.needRow { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 10px 0 4px; font-size: 22px; color: var(--ink); }
+.needRow .chip { padding: 4px 16px; border-radius: 999px; margin: 0; }
+.chip.gapChip { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.8) 0 7px, rgba(255,255,255,0) 7px 14px); outline: 3px dashed #646b78; outline-offset: -3px; min-width: 90px; text-align: center; }
+.needRow .chip.gapChip { background: #fff; outline: 0; min-width: 0; }
+.needRow .chip.gapChip.r-who { box-shadow: inset 0 0 0 4px var(--who); } .needRow .chip.gapChip.r-doing { box-shadow: inset 0 0 0 4px var(--doing); }
+.proofNote { font-size: 22px; margin-top: 6px; }
+.slot.r-who, .slot.r-doing { border-color: #646b78; background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.8) 0 7px, rgba(255,255,255,0) 7px 14px); }
 /* fix and missing rows */
 .fixRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; row-gap: 14px; font-size: 32px; margin: 10px 0 6px; }
 .fw { border: 0; background: transparent; padding: 6px 4px; border-radius: 10px; font-size: 32px; }
@@ -164,6 +176,7 @@ body.sb .gw { padding-bottom: 20px; }
       <button id="aSend" type="button">Send saved answers now</button>
       <button id="aTest" type="button">Send a test row</button>
     </div>
+    <p>Writing ladder step today: <select id="aFs"><option value="auto">Automatic (by week)</option><option value="1">Step 1</option><option value="2">Step 2</option><option value="3">Step 3</option><option value="4">Step 4</option><option value="5">Step 5</option><option value="6">Step 6</option><option value="7">Step 7</option><option value="8">Step 8</option><option value="9">Step 9</option><option value="10">Step 10</option><option value="11">Step 11</option><option value="12">Step 12</option></select></p>
     <p>Enquiry words: <select id="aEnq"><option value="auto">Automatic (by date)</option><option value="ocean">Ocean Meets Sky</option><option value="monarchy">Monarchy and Tudor Bristol</option></select></p>
     <div>
       <button id="aHome" type="button">Back to the names</button>
@@ -185,16 +198,17 @@ var ITEMS_PER_ROUND = 6;
 var ENQUIRY_SWITCH = '2026-11-23'; // monarchy words from this date
 
 /* ---------------- learners (names must match the Sheet) ----------------
-   fs: the learner's step on the full stops ladder (from 24 Nov 2026). It is an extra round, done first.
-   To move a learner up, change the number (fs: 1 to fs: 2). Take fs out to leave a learner off the ladder.
+   fs: 'auto' puts the learner on the full stops ladder (from 24 Nov 2026). It is an extra round, done first, and
+   it moves on one step every week whatever happens (see FS_WEEKS). A number (fs: 3) holds a learner on that step.
+   Take fs out to leave a learner off the ladder.
    early: true gives the picture sentences on the ladder. */
 var LEARNERS = [
-  { name: 'Rhino', code: 'RHI', first: 'Rhino', icon: '🦏',pic: '🐬', fs: 1, gaps: ['RHI-1', 'RHI-2', 'RHI-3'] },
-  { name: 'Kangaroo', code: 'KAN', first: 'Kangaroo', icon: '🦘',pic: '🦋', fs: 1, gaps: ['KAN-1', 'KAN-2', 'KAN-3'] },
-  { name: 'F1 car', code: 'CAR', first: 'F1 car', icon: '🏎️',pic: '🦁', fs: 1, gaps: ['CAR-1', 'CAR-2', 'CAR-3'] },
-  { name: 'Manta ray', code: 'RAY', first: 'Manta ray', icon: 'svg:manta',pic: '🐢', fs: 1, gaps: ['RAY-1', 'RAY-2', 'RAY-3'] },
-  { name: 'Monkey', code: 'MKY', first: 'Monkey', icon: '🐒',pic: '🌸', fs: 1, gaps: ['MKY-4', 'MKY-5', 'MKY-6'], sound: true, early: true },
-  { name: 'Xeme', code: 'XEM', first: 'Xeme', icon: 'svg:xeme', fs: 1, gaps: ['XEM-1', 'XEM-2', 'XEM-3'] }
+  { name: 'Rhino', code: 'RHI', first: 'Rhino', icon: '🦏',pic: '🐬', fs: 'auto', gaps: ['RHI-1', 'RHI-2', 'RHI-3'] },
+  { name: 'Kangaroo', code: 'KAN', first: 'Kangaroo', icon: '🦘',pic: '🦋', fs: 'auto', gaps: ['KAN-1', 'KAN-2', 'KAN-3'] },
+  { name: 'F1 car', code: 'CAR', first: 'F1 car', icon: '🏎️',pic: '🦁', fs: 'auto', gaps: ['CAR-1', 'CAR-2', 'CAR-3'] },
+  { name: 'Manta ray', code: 'RAY', first: 'Manta ray', icon: 'svg:manta',pic: '🐢', fs: 'auto', gaps: ['RAY-1', 'RAY-2', 'RAY-3'] },
+  { name: 'Monkey', code: 'MKY', first: 'Monkey', icon: '🐒',pic: '🌸', fs: 'auto', gaps: ['MKY-4', 'MKY-5', 'MKY-6'], sound: true, early: true },
+  { name: 'Xeme', code: 'XEM', first: 'Xeme', icon: 'svg:xeme', fs: 'auto', gaps: ['XEM-1', 'XEM-2', 'XEM-3'] }
 ];
 
 /* ---------------- gaps: child title, emoji and activity mix ---------------- */
@@ -212,15 +226,15 @@ var GAPS = {
   'RAY-2': { title: 'Tricky words and sounds', em: '⭐', words: ['said', 'what', 'know', 'when', 'there'], mix: [['pickSpell', 2], ['thwh', 4]] },
   'RAY-3': { title: '-ed endings', em: '🔚', mix: [['suffix', 4], ['contraction', 2]] },
   'MKY-1': { title: 'Word and picture', em: '🖼️', mix: [['picToWord', 3], ['wordToPic', 3]] },
-  'MKY-2': { title: 'Sentence builder', em: '🏗️', mix: [['mahBuild', 6]] },
+  'MKY-2': { title: 'Sentence builder', em: '🏗️', mix: [['esBuild', 6]] },
   'XEM-1': { title: 'Capital letters', em: '🔠', mix: [['fixBoth', 4], ['whichCorrect', 2]] },
   'XEM-2': { title: '-ed endings', em: '🔚', mix: [['suffixT', 5], ['contraction', 1]] },
   'XEM-3': { title: 'Past tense', em: '⏪', mix: [['tense', 6]] },
-  'MKY-3': { title: 'Sound builder', em: '🔤', mix: [['mahSpell', 6]] },
-  // step up from 23 Nov 2026 (MAH-1 to 3 were secure): her assessment gaps ai oa ar ur er ear ure, longer sentences, adjacent consonants
-  'MKY-4': { title: 'Tricky sounds', em: '🔤', mix: [['mahSounds', 6]] },
-  'MKY-5': { title: 'Longer sentences', em: '🏗️', mix: [['mahBuild3', 6]] },
-  'MKY-6': { title: 'Longer words', em: '🔡', mix: [['mahSpell2', 6]] }
+  'MKY-3': { title: 'Sound builder', em: '🔤', mix: [['esSpell', 6]] },
+  // step up from 23 Nov 2026 (MKY-1 to 3 were secure): assessment gaps ai oa ar ur er ear ure, longer sentences, adjacent consonants
+  'MKY-4': { title: 'Tricky sounds', em: '🔤', mix: [['esSounds', 6]] },
+  'MKY-5': { title: 'Longer sentences', em: '🏗️', mix: [['esBuild3', 6]] },
+  'MKY-6': { title: 'Longer words', em: '🔡', mix: [['esSpell2', 6]] }
 };
 
 /* ---------------- full stops ladder (APP small steps, from 24 Nov 2026) ----------------
@@ -240,7 +254,14 @@ var FS_STEPS = {
   12: { title: 'Capital letter and full stop', em: '🔠', mix: [['fixOne', 3], ['capStop', 2], ['buildStop', 1]] }
 };
 function gapOf(id) { if (GAPS[id]) return GAPS[id]; var m = /-FS(\d+)$/.exec(id); return m ? FS_STEPS[+m[1]] : null; }
-function allGaps(l) { return (l.fs && FS_STEPS[l.fs] ? [l.code + '-FS' + l.fs] : []).concat(l.gaps); }
+/* The ladder moves on every week, whether or not a learner is secure, so that every learner meets every step on
+   the iPad. Each date is the Monday of the week the step starts (Step 1 first). In the holidays the page stays on
+   the last step. When Steps 13 onwards are built, add their Mondays to the end of this list. */
+var FS_WEEKS = ['2026-11-23', '2026-11-30', '2026-12-07', '2026-12-14', '2027-01-04', '2027-01-11', '2027-01-18', '2027-01-25', '2027-02-01', '2027-02-08', '2027-02-22', '2027-03-01'];
+function fsStepByDate() { var t = todayStr(), n = 0; FS_WEEKS.forEach(function (d, i) { if (t >= d && FS_STEPS[i + 1]) n = i + 1; }); return n; }
+// an adult can choose a different step for today on this iPad (adults panel)
+function fsStepToday() { var o = sget('fsStep', null); return o && o.d === todayStr() && FS_STEPS[o.n] ? o.n : fsStepByDate(); }
+function allGaps(l) { var n = l.fs === 'auto' ? fsStepToday() : l.fs; return (n && FS_STEPS[n] ? [l.code + '-FS' + n] : []).concat(l.gaps); }
 
 /* ---------------- helpers ---------------- */
 var STORE = 'gcW1:';
@@ -479,6 +500,30 @@ function nextBtn(done, res, label) {
 }
 function wordNode(t, ann) { return ann ? gWord(ann) : document.createTextNode(t); }
 
+/* ---- colour coded reason: the sentence in its colours, and a tick or cross for the subject and the verb ---- */
+function colRow(parts, gapRole, gapAt) {
+  var box = el('div', { class: 'proofRow' }), first = true;
+  function gapNode() { box.appendChild(el('span', { class: 'chip gapChip r-' + gapRole, text: '?' })); }
+  parts.forEach(function (p, i) {
+    if (gapRole && i === gapAt) gapNode();
+    box.appendChild(el('span', { class: 'chip r-' + p[1], text: first ? cap(p[0]) : p[0] })); first = false;
+  });
+  if (gapRole && gapAt >= parts.length) gapNode();
+  box.appendChild(el('span', { class: 'chip r-stop', text: '.' }));
+  return box;
+}
+function needRow(hasWho, hasVerb, verb) {
+  var k = verb ? verbKind(verb) : null, vName = 'verb (' + (k === 'a being verb' ? 'being' : (k === 'a having verb' ? 'having' : 'doing')) + ')';
+  return el('div', { class: 'needRow' },
+    el('span', { class: 'chip r-who' + (hasWho ? '' : ' gapChip'), text: (hasWho ? '✅ ' : '❌ no ') + 'subject (who)' }),
+    el('span', { class: 'chip r-doing' + (hasVerb ? '' : ' gapChip'), text: (hasVerb ? '✅ ' : '❌ no ') + vName }));
+}
+function proofInfo(pr) {
+  var miss = pr.kind === 'noVerb' ? 'doing' : (pr.kind === 'noSubject' ? 'who' : null);
+  return { miss: miss, at: miss ? roleIdx(pr.parts, miss) : -1, frag: miss ? pr.parts.filter(function (p) { return p[1] !== miss; }) : pr.parts,
+    verb: pr.parts[roleIdx(pr.parts, 'doing')][0] };
+}
+
 /* ---- choose: one correct option ---- */
 ENG.choose = function (it, done) {
   var d = it.data, fb = el('div'), answered = false;
@@ -503,7 +548,19 @@ ENG.choose = function (it, done) {
       Array.prototype.forEach.call(optBox.children, function (x) { x.disabled = true; if (x._o.ok) x.classList.add('ok'); });
       if (!o.ok) b.classList.add('no');
       var fill = d.frame ? el('div', { class: 'model' }, frameNode(true)) : (d.fill ? el('div', { class: 'model', text: d.fill }) : null);
-      fb.appendChild(el('div', { class: 'feedback ' + (o.ok ? 'ok' : 'no') }, o.ok ? '✅ Yes!' : '👀 Look at the green one.', d.why && !o.ok ? el('div', { text: d.why }) : null, fill));
+      var head = o.ok ? '✅ Yes!' : '👀 Look at the green one.';
+      if (d.proof) {
+        // show the reason in the sentence colours, whether the answer was right or wrong
+        var pi = proofInfo(d.proof);
+        // the sentence they read stays plain: the colours only appear down here, after the answer
+        fb.appendChild(el('div', { class: 'feedback ' + (o.ok ? 'ok' : 'no') }, head,
+          d.proof.why ? el('div', { text: d.proof.why }) : null,
+          showEl ? colRow(pi.frag, pi.miss, pi.at) : null,
+          needRow(pi.miss !== 'who', pi.miss !== 'doing', pi.verb),
+          el('div', { class: 'proofNote', text: pi.miss ? 'So it is not a complete idea yet. Add the ' + (pi.miss === 'who' ? 'subject' : 'verb') + ':' : (showEl ? 'So it is a complete idea.' : 'Subject, then verb.') }),
+          pi.miss || !showEl ? colRow(d.proof.parts) : null));
+      } else
+      fb.appendChild(el('div', { class: 'feedback ' + (o.ok ? 'ok' : 'no') }, head, d.why && !o.ok ? el('div', { text: d.why }) : null, fill));
       fb.appendChild(nextBtn(done, { first: o.ok, answer: o.t, attempts: 1 }));
       afterRender();
     };
@@ -661,7 +718,7 @@ ENG.fixIdea = function (it, done) {
     return b;
   }));
   function slotNode() {
-    if (phase < 3) return el('span', { class: 'slot' });
+    if (phase < 3) return el('span', { class: 'slot r-' + d.missing[1] });
     return el('span', { class: 'tile fixed okTile r-' + d.missing[1], text: d.missing[0] });
   }
   function draw() {
@@ -681,7 +738,7 @@ ENG.fixIdea = function (it, done) {
     if (phase !== 2) return; phase = 3; chosen = o; ok2 = o === d.missing;
     draw(); var both = ok1 && ok2; row.classList.toggle('okRow', both);
     fb.appendChild(el('div', { class: 'feedback ' + (both ? 'ok' : 'no') }, both ? '✅ Yes! Now it is a complete idea.' : '👀 It needed a ' + need + ' (' + (need === 'subject' ? 'who' : 'doing') + ').',
-      el('div', { class: 'model', text: d.full })));
+      needRow(true, true, d.verb), el('div', { class: 'proofNote', text: 'It has a subject and a verb now.' })));
     fb.appendChild(nextBtn(done, { first: both, answer: 'missing: ' + said + ' | tile: ' + o[0], attempts: 1 }));
   }
   row.style.display = 'none'; poolBox.style.display = 'none';
@@ -862,13 +919,13 @@ function joinParts(parts) { return parts.map(function (p) { return p[0]; }).join
 function isEarly() { return !!(S && S.learner && S.learner.early); }
 function fsBank(kind) {
   var all;
-  if (isEarly()) all = (enquiry() === 'monarchy' ? MAH_BUILD3_MON : MAH_BUILD3).concat(kind === 'action' ? [] : FS_BE_EARLY).map(function (b) { return { parts: b.parts, pic: b.pic, extra: b.extra }; });
+  if (isEarly()) all = (enquiry() === 'monarchy' ? ES_BUILD3_MON : ES_BUILD3).concat(kind === 'action' ? [] : FS_BE_EARLY).map(function (b) { return { parts: b.parts, pic: b.pic, extra: b.extra }; });
   else all = bank().map(function (p) { return { parts: p }; });
   if (!kind) return all;
   return all.filter(function (x) { var be = !!verbKind(x.parts[roleIdx(x.parts, 'doing')][0]); return kind === 'being' ? be : !be; });
 }
 function fsSV() {
-  if (isEarly() || enquiry() !== 'monarchy') return (enquiry() === 'monarchy' ? MAH_BUILD_MON : MAH_BUILD).map(function (b) { return { parts: [[b.who, 'who'], [b.doing, 'doing']], extra: [b.wrong, 'doing'], pic: isEarly() ? b.pic : null }; });
+  if (isEarly() || enquiry() !== 'monarchy') return (enquiry() === 'monarchy' ? ES_BUILD_MON : ES_BUILD).map(function (b) { return { parts: [[b.who, 'who'], [b.doing, 'doing']], extra: [b.wrong, 'doing'], pic: isEarly() ? b.pic : null }; });
   return MON_SV.map(function (b) { return { parts: [[b.who, 'who'], [b.doing, 'doing']], extra: [b.wrong, 'doing'] }; });
 }
 function tapItem(s, asks, vq) { return { engine: 'tapRole', label: sText(s.parts), data: { parts: s.parts, pic: s.pic, asks: asks, vq: vq } }; }
@@ -908,7 +965,8 @@ var GEN = {
     if (kind === 'noVerb') { text = cap(joinParts(parts.filter(function (p) { return p[1] !== 'doing'; }))) + '.'; why = 'There is no verb (doing), so it is not a complete idea.'; }
     if (kind === 'noSubject') { text = cap(joinParts(parts.filter(function (p) { return p[1] !== 'who'; }))) + '.'; why = 'There is no subject (who), so it is not a complete idea.'; }
     return { engine: 'choose', label: text, data: { prompt: 'Is this a complete idea?', pic: s.pic, show: text,
-      options: [{ t: '✅ Yes, a sentence', ok: kind === 'ok' }, { t: '❌ No, not yet', ok: kind !== 'ok' }], why: why, fill: kind === 'ok' ? null : full } };
+      options: [{ t: '✅ Yes, a sentence', ok: kind === 'ok' }, { t: '❌ No, not yet', ok: kind !== 'ok' }], why: why, fill: kind === 'ok' ? null : full,
+      proof: { parts: parts, kind: kind } } };
   },
   fixIdea: function () {
     var all = fsBank(), s = pick(all), parts = s.parts, role = pick(['who', 'doing']), at = roleIdx(parts, role), missing = parts[at];
@@ -924,7 +982,7 @@ var GEN = {
       if (cands.length) opts.push(pick(cands));
     });
     return { engine: 'fixIdea', label: sText(parts) + ' [no ' + (role === 'who' ? 'subject' : 'verb') + ']', data: {
-      frag: frag, at: at, missing: missing, options: shuffle(opts), fragText: cap(joinParts(frag)), full: sText(parts), pic: s.pic } };
+      frag: frag, at: at, missing: missing, options: shuffle(opts), fragText: cap(joinParts(frag)), full: sText(parts), pic: s.pic, verb: parts[roleIdx(parts, 'doing')][0] } };
   },
   countSent: function () {
     var n = 1 + Math.floor(Math.random() * 3), ss = pickN(fsBank(), n), text = ss.map(function (x) { return sText(x.parts); }).join(' ');
@@ -964,7 +1022,7 @@ var GEN = {
       prompt: 'Is this a sentence?', show: text,
       options: [{ t: '✅ Sentence', ok: ok }, { t: '❌ Not a sentence', ok: !ok }],
       why: ok ? 'It has a subject (who) and a verb (doing), so it makes sense.' : 'It needs a verb (doing) to make sense.',
-      fill: ok ? null : full } };
+      fill: ok ? null : full, proof: { parts: parts, kind: ok ? 'ok' : 'noVerb' } } };
   },
   build: function () {
     var parts = pick(bank().filter(function (p) { return !p.some(function (x) { return x[1] === 'how'; }); }));
@@ -975,7 +1033,8 @@ var GEN = {
     var rest = parts.filter(function (p) { return p[1] !== 'doing'; }), doing = parts.filter(function (p) { return p[1] === 'doing'; });
     var noVerb = rest.map(function (p) { return p[0]; }).join(' ') + '.';
     var verbEnd = rest.concat(doing).map(function (p) { return p[0]; }).join(' ') + '.';
-    return { engine: 'choose', label: full, data: { prompt: 'Which one makes sense?', options: [{ t: full, ok: true }, { t: noVerb, ok: false }, { t: verbEnd, ok: false }], why: 'A sentence needs a subject (who) and a verb (doing) in the right order.' } };
+    return { engine: 'choose', label: full, data: { prompt: 'Which one makes sense?', options: [{ t: full, ok: true }, { t: noVerb, ok: false }, { t: verbEnd, ok: false }], why: 'A sentence needs a subject (who) and a verb (doing) in the right order.',
+      proof: { parts: parts, kind: 'ok', why: 'A sentence needs a subject and a verb in the right order.' } } };
   },
   whichCorrect: function () {
     var parts = pick(bank().filter(noRoman)), full = sText(parts);
@@ -1046,26 +1105,26 @@ var GEN = {
     return { engine: 'choose', label: w.w, data: { prompt: 'Which picture matches the word?', showAnn: w.g, picOpts: true,
       options: [{ t: w.pic, ok: true }].concat(others.map(function (o) { return { t: o.pic, ok: false }; })) } };
   },
-  mahBuild: function () {
-    var b = pick(enquiry() === 'monarchy' ? MAH_BUILD_MON : MAH_BUILD);
+  esBuild: function () {
+    var b = pick(enquiry() === 'monarchy' ? ES_BUILD_MON : ES_BUILD);
     return { engine: 'build', label: b.who + ' ' + b.doing + '.', data: { prompt: 'Look at the picture. Build the sentence.', pic: b.pic, parts: [[b.who, 'who'], [b.doing, 'doing']], extra: [[b.wrong, 'doing']] } };
   },
-  mahSounds: function () {
-    var w = pick(MAH_SOUNDS), fam = MAH_FAM[w.f];
+  esSounds: function () {
+    var w = pick(ES_SOUNDS), fam = ES_FAM[w.f];
     var it = graphemeItem({ w: w.w, g: w.g, pic: w.pic }, shuffle(fam.slice()));
     it.data.why = 'The missing sound is ' + w.g + ': ' + w.w + '.';
     return it;
   },
-  mahBuild3: function () {
-    var b = pick(enquiry() === 'monarchy' ? MAH_BUILD3_MON : MAH_BUILD3);
+  esBuild3: function () {
+    var b = pick(enquiry() === 'monarchy' ? ES_BUILD3_MON : ES_BUILD3);
     return { engine: 'build', label: b.parts.map(function (p) { return p[0]; }).join(' ') + '.', data: { prompt: 'Look at the picture. Build the sentence.', pic: b.pic, parts: b.parts, extra: [b.extra] } };
   },
-  mahSpell2: function () {
-    var w = pick(MAH_LONG), target = w.g.split('-');
+  esSpell2: function () {
+    var w = pick(ES_LONG), target = w.g.split('-');
     var extra = pickN(['ai', 'oa', 'ar', 'ur', 'er', 'or', 'ee', 's', 't', 'p', 'l', 'r', 'n', 'd', 'b', 'm', 'c', 'f', 'sh', 'ch'].filter(function (g) { return target.indexOf(g) < 0; }), 3);
     return { engine: 'spell', label: w.w, data: { word: w.w, pic: w.pic, prompt: 'Say the sounds. Build the word.', target: target, pool: target.concat(extra) } };
   },
-  mahSpell: function () {
+  esSpell: function () {
     var w = pick(vocab().filter(function (x) { return x.g.indexOf('_') < 0; })), target = w.g.split('-');
     var extra = pickN(['ai', 'ee', 'oa', 'sh', 'ch', 'th', 'ar', 'or', 'oo', 'ow', 'igh', 'ng', 'ck', 's', 't', 'p', 'm', 'd', 'a', 'i'].filter(function (g) { return target.indexOf(g) < 0; }), 2);
     return { engine: 'spell', label: w.w, data: { word: w.w, pic: w.pic, prompt: 'Say the sounds. Build the word.', target: target, pool: target.concat(extra) } };
@@ -1076,7 +1135,7 @@ function graphemeItem(g, options) {
   return { engine: 'choose', label: g.w, data: { prompt: 'Which sounds fill the gap?', pic: g.pic, gblank: [before, after],
     options: options.map(function (o) { return { t: o, ok: o === g.g }; }), fill: g.w } };
 }
-function vocab() { return enquiry() === 'monarchy' ? MAH_VOCAB_MON : MAH_VOCAB; }
+function vocab() { return enquiry() === 'monarchy' ? ES_VOCAB_MON : ES_VOCAB; }
 
 /* =====================================================================
    CONTENT (edit these lists to change what learners practise)
@@ -1245,7 +1304,7 @@ var CONTRACTIONS = [
   { c: "isn't", w: ['isnt', "is'nt"], f: 'The crown ___ light.' }
 ];
 // Earlier stage learner: words with graphemes ('-' between graphemes, a_e for split digraphs)
-var MAH_VOCAB = [
+var ES_VOCAB = [
   { w: 'sea', g: 's-ea', pic: '🌊' }, { w: 'boat', g: 'b-oa-t', pic: '⛵' }, { w: 'fish', g: 'f-i-sh', pic: '🐟' },
   { w: 'crab', g: 'c-r-a-b', pic: '🦀' }, { w: 'shell', g: 'sh-e-ll', pic: '🐚' }, { w: 'sun', g: 's-u-n', pic: '☀️' },
   { w: 'moon', g: 'm-oo-n', pic: '🌙' }, { w: 'star', g: 's-t-ar', pic: '⭐' }, { w: 'bird', g: 'b-ir-d', pic: '🐦' },
@@ -1253,16 +1312,16 @@ var MAH_VOCAB = [
   { w: 'ship', g: 'sh-i-p', pic: '🚢' }, { w: 'whale', g: 'wh-a_e-l', pic: '🐋' }, { w: 'night', g: 'n-igh-t', pic: '🌃' },
   { w: 'wind', g: 'w-i-n-d', pic: '🌬️' }, { w: 'sand', g: 's-a-n-d', pic: '🏖️' }, { w: 'net', g: 'n-e-t', pic: '🥅' }
 ];
-var MAH_VOCAB_MON = [
+var ES_VOCAB_MON = [
   { w: 'king', g: 'k-i-ng', pic: '🤴' }, { w: 'queen', g: 'qu-ee-n', pic: '👸' }, { w: 'crown', g: 'c-r-ow-n', pic: '👑' },
   { w: 'coin', g: 'c-oi-n', pic: '💰' }, { w: 'horse', g: 'h-or-se', pic: '🐴' }, { w: 'flag', g: 'f-l-a-g', pic: '🚩' },
   { w: 'ring', g: 'r-i-ng', pic: '💍' }, { w: 'cake', g: 'c-a_e-k', pic: '🎂' }, { w: 'gold', g: 'g-o-l-d', pic: '🥇' },
   { w: 'ship', g: 'sh-i-p', pic: '🚢' }, { w: 'gate', g: 'g-a_e-t', pic: '🚪' }, { w: 'road', g: 'r-oa-d', pic: '🛣️' },
   { w: 'drum', g: 'd-r-u-m', pic: '🥁' }, { w: 'cheer', g: 'ch-ee-r', pic: '🙌' }
 ];
-// Earlier stage step up (from 23 Nov 2026). Sounds from her ULS gaps; each family is the set of choices shown.
-var MAH_FAM = { a: ['ai', 'oa', 'ar'], u: ['ur', 'er', 'or'], e: ['ear', 'ure', 'air'] };
-var MAH_SOUNDS = [
+// Earlier stage step up (from 23 Nov 2026). Sounds from the ULS assessment gaps; each family is the set of choices shown.
+var ES_FAM = { a: ['ai', 'oa', 'ar'], u: ['ur', 'er', 'or'], e: ['ear', 'ure', 'air'] };
+var ES_SOUNDS = [
   { w: 'rain', g: 'ai', f: 'a', pic: '🌧️' }, { w: 'train', g: 'ai', f: 'a', pic: '🚆' }, { w: 'paint', g: 'ai', f: 'a', pic: '🎨' },
   { w: 'snail', g: 'ai', f: 'a', pic: '🐌' }, { w: 'chain', g: 'ai', f: 'a', pic: '⛓️' }, { w: 'boat', g: 'oa', f: 'a', pic: '⛵' },
   { w: 'coat', g: 'oa', f: 'a', pic: '🧥' }, { w: 'goat', g: 'oa', f: 'a', pic: '🐐' }, { w: 'road', g: 'oa', f: 'a', pic: '🛣️' },
@@ -1274,7 +1333,7 @@ var MAH_SOUNDS = [
   { w: 'ruler', g: 'er', f: 'u', pic: '📏' }, { w: 'flower', g: 'er', f: 'u', pic: '🌸' }, { w: 'ear', g: 'ear', f: 'e', pic: '👂' },
   { w: 'beard', g: 'ear', f: 'e', pic: '🧔' }, { w: 'picture', g: 'ure', f: 'e', pic: '🖼️' }, { w: 'treasure', g: 'ure', f: 'e', pic: '💰' }
 ];
-var MAH_LONG = [
+var ES_LONG = [
   { w: 'frog', g: 'f-r-o-g', pic: '🐸' }, { w: 'crab', g: 'c-r-a-b', pic: '🦀' }, { w: 'drum', g: 'd-r-u-m', pic: '🥁' },
   { w: 'flag', g: 'f-l-a-g', pic: '🚩' }, { w: 'swim', g: 's-w-i-m', pic: '🏊' }, { w: 'tent', g: 't-e-n-t', pic: '⛺' },
   { w: 'hand', g: 'h-a-n-d', pic: '✋' }, { w: 'milk', g: 'm-i-l-k', pic: '🥛' }, { w: 'clock', g: 'c-l-o-ck', pic: '🕐' },
@@ -1283,7 +1342,7 @@ var MAH_LONG = [
   { w: 'shark', g: 'sh-ar-k', pic: '🦈' }, { w: 'scarf', g: 's-c-ar-f', pic: '🧣' }, { w: 'gift', g: 'g-i-f-t', pic: '🎁' },
   { w: 'sunset', g: 's-u-n-s-e-t', pic: '🌅' }, { w: 'lunchbox', g: 'l-u-n-ch-b-o-x', pic: '🍱' }
 ];
-var MAH_BUILD3 = [
+var ES_BUILD3 = [
   { pic: '🐟', parts: [['The fish', 'who'], ['swims', 'doing'], ['in the sea', 'where']], extra: ['in the sky', 'where'] },
   { pic: '🦀', parts: [['The crab', 'who'], ['digs', 'doing'], ['in the sand', 'where']], extra: ['sings', 'doing'] },
   { pic: '🐦', parts: [['The gull', 'who'], ['flies', 'doing'], ['over the boat', 'where']], extra: ['under the sea', 'where'] },
@@ -1293,7 +1352,7 @@ var MAH_BUILD3 = [
   { pic: '👧', parts: [['Maya', 'who'], ['flies', 'doing'], ['her red kite', 'what']], extra: ['her red car', 'what'] },
   { pic: '🌧️', parts: [['The rain', 'who'], ['falls', 'doing'], ['on the rocks', 'where']], extra: ['jumps', 'doing'] }
 ];
-var MAH_BUILD3_MON = [
+var ES_BUILD3_MON = [
   { pic: '🤴', parts: [['The king', 'who'], ['sits', 'doing'], ['on his throne', 'where']], extra: ['swims', 'doing'] },
   { pic: '👸🐴', parts: [['The queen', 'who'], ['rides', 'doing'], ['to Bristol', 'where']], extra: ['to the moon', 'where'] },
   { pic: '🍖', parts: [['The cook', 'who'], ['roasts', 'doing'], ['the meat', 'what']], extra: ['the moon', 'what'] },
@@ -1305,14 +1364,14 @@ var MAH_BUILD3_MON = [
   { pic: '💃', parts: [['The queen', 'who'], ['dances', 'doing'], ['in the hall', 'where']], extra: ['in the sea', 'where'] },
   { pic: '💂', parts: [['The guards', 'who'], ['stand', 'doing'], ['by the gate', 'where']], extra: ['swim', 'doing'] }
 ];
-var MAH_BUILD = [
+var ES_BUILD = [
   { pic: '🐟', who: 'The fish', doing: 'swims', wrong: 'sleeps' }, { pic: '🦀', who: 'The crab', doing: 'digs', wrong: 'sings' },
   { pic: '🐦', who: 'The bird', doing: 'flies', wrong: 'swims' }, { pic: '☀️', who: 'The sun', doing: 'shines', wrong: 'runs' },
   { pic: '⛵', who: 'The boat', doing: 'sails', wrong: 'eats' }, { pic: '🐶', who: 'The dog', doing: 'runs', wrong: 'flies' },
   { pic: '🌧️', who: 'The rain', doing: 'falls', wrong: 'jumps' }, { pic: '🐋', who: 'The whale', doing: 'swims', wrong: 'reads' },
   { pic: '😴', who: 'The girl', doing: 'sleeps', wrong: 'swims' }, { pic: '🏃', who: 'The boy', doing: 'runs', wrong: 'sleeps' }
 ];
-var MAH_BUILD_MON = [
+var ES_BUILD_MON = [
   { pic: '🤴👋', who: 'The king', doing: 'waves', wrong: 'swims' }, { pic: '👸🐴', who: 'The queen', doing: 'rides', wrong: 'sleeps' },
   { pic: '🥁', who: 'The man', doing: 'drums', wrong: 'flies' }, { pic: '👏', who: 'The people', doing: 'clap', wrong: 'swim' },
   { pic: '🐴', who: 'The horse', doing: 'trots', wrong: 'sings' }, { pic: '🎺', who: 'The band', doing: 'plays', wrong: 'sleeps' },
@@ -1325,7 +1384,8 @@ var title = document.getElementById('title');
 function openAdults() {
   document.getElementById('aQueue').textContent = 'Answers waiting to send on this iPad: ' + outbox().length;
   document.getElementById('aEnq').value = sget('enq', 'auto');
-  document.getElementById('aMsg').textContent = 'Enquiry words now: ' + (enquiry() === 'monarchy' ? 'Monarchy and Tudor Bristol' : 'Ocean Meets Sky');
+  var fo = sget('fsStep', null); document.getElementById('aFs').value = fo && fo.d === todayStr() ? String(fo.n) : 'auto';
+  document.getElementById('aMsg').textContent = 'Writing ladder now: ' + (fsStepToday() ? 'Step ' + fsStepToday() + ' (' + FS_STEPS[fsStepToday()].title + ')' : 'not started') + '. Enquiry words now: ' + (enquiry() === 'monarchy' ? 'Monarchy and Tudor Bristol' : 'Ocean Meets Sky');
   adults.classList.add('open');
 }
 title.addEventListener('touchstart', function () { holdT = setTimeout(openAdults, 1200); }, { passive: true });
@@ -1338,6 +1398,7 @@ document.getElementById('aTest').onclick = function () {
   document.getElementById('aMsg').textContent = 'Test row sent. Check the Writing responses tab.';
 };
 document.getElementById('aEnq').onchange = function () { sset('enq', this.value); openAdults(); };
+document.getElementById('aFs').onchange = function () { sset('fsStep', this.value === 'auto' ? null : { d: todayStr(), n: +this.value }); openAdults(); };
 document.getElementById('aHome').onclick = function () { adults.classList.remove('open'); home(); };
 
 document.getElementById('notMe').onclick = function () { home(); };

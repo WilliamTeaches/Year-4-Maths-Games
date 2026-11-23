@@ -247,7 +247,7 @@ function setHeader() {
   var dots = document.getElementById('dots'); dots.innerHTML = '';
   if (S && S.items) S.items.forEach(function (x, i) { dots.appendChild(el('span', { class: i < S.si ? 'done' : (i === S.si ? 'now' : '') })); });
 }
-function listFor(l) { return l.sound ? MAH_PASSAGES : PASSAGES; }
+function listFor(l) { return l.sound ? ES_PASSAGES : PASSAGES; }
 
 /* ---------------- names ---------------- */
 function home() {
@@ -745,7 +745,7 @@ var WORD_G = {
 };
 
 // Earlier stage passages: every word split into graphemes ('-'), split digraphs as a_e
-var MAH_PASSAGES = [
+var ES_PASSAGES = [
   { id: 'ES-OMS-1', title: 'At the sea', date: '2026-11-12', s: [
     { t: 'I c-a-n s-ee th-e s-ea.', pic: '🌊', type: 'Retrieval', q: 'What can I see?', o: ['🌊 the sea', '🐶 a dog', '🚗 a car'], ev: ['sea'] },
     { t: 'Th-e s-u-n i-s h-o-t.', pic: '☀️', type: 'Yes or no', q: 'Is the sun hot?', o: ['✅ yes', '❌ no'], ev: ['hot'] },
