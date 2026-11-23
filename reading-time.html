@@ -50,6 +50,9 @@ h2 { font-size: 30px; font-weight: normal; margin: 0 0 14px; }
 .next { margin-top: 18px; text-align: center; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .hint { text-align: center; color: var(--muted); font-size: 20px; margin-top: 10px; }
 .title { font-size: 24px; color: var(--magenta); margin: 0 0 10px; }
+.focusRow { font-size: 16px; color: #6b7280; margin: -4px 0 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.focusG { background: #fdf2e9; color: #9a4a12; border-radius: 8px; padding: 2px 9px; font-size: 18px; }
+.focusG.newG { background: #fff3b0; color: #6b5200; }
 .passage { display: flex; gap: 18px; align-items: flex-start; }
 .passage .txt { flex: 1; }
 .passage .pic { font-size: 90px; line-height: 1; }
@@ -128,12 +131,12 @@ body.sb .gw { padding-bottom: 20px; }
 var FORM = {"url": "https://docs.google.com/forms/d/e/1FAIpQLSfNEDVi4GWvFMLLEtS4v3yEiwJ2FCp9cScTZs5tpBQ3qesIAw/formResponse", "fields": {"learner": "entry.1320799495", "session": "entry.1607565800", "passage": "entry.1522486681", "sentence": "entry.2072392593", "qtype": "entry.96304366", "first": "entry.1269369674", "answer": "entry.482270548", "tapped": "entry.196507964", "sound": "entry.1196539554", "seconds": "entry.1525439196", "time": "entry.1561020559"}};
 
 var LEARNERS = [
-  { name: 'Rocco S',  first: 'Rhino', icon: '🦏',pic: '🐬' },
-  { name: 'Kalani D', first: 'Kangaroo', icon: '🦘',pic: '🦋' },
-  { name: 'Leo W',    first: 'F1 car', icon: '🏎️',pic: '🦁' },
-  { name: 'Munraj S', first: 'Manta ray', icon: 'svg:manta',pic: '🐢' },
-  { name: 'Mahsa N',  first: 'Monkey', icon: '🐒',pic: '🌸', sound: true },
-  { name: 'Xander D', first: 'Xeme', icon: 'svg:xeme' }
+  { name: 'Rhino', code: 'RHI', first: 'Rhino', icon: '🦏',pic: '🐬' },
+  { name: 'Kangaroo', code: 'KAN', first: 'Kangaroo', icon: '🦘',pic: '🦋' },
+  { name: 'F1 car', code: 'CAR', first: 'F1 car', icon: '🏎️',pic: '🦁' },
+  { name: 'Manta ray', code: 'RAY', first: 'Manta ray', icon: 'svg:manta',pic: '🐢' },
+  { name: 'Monkey', code: 'MKY', first: 'Monkey', icon: '🐒',pic: '🌸', sound: true },
+  { name: 'Xeme', code: 'XEM', first: 'Xeme', icon: 'svg:xeme' }
 ];
 
 /* ---------------- helpers ---------------- */
@@ -282,7 +285,7 @@ function begin(l, idx, set, r) {
   set = set || 1;
   var P = listFor(l)[idx], extra = MORE[P.id] || [];
   if (set > 1 && !extra[set - 2]) set = 1;
-  var sid = l.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() + '-R-' + todayStr().replace(/-/g, '') + '-' + new Date().toTimeString().slice(0, 5).replace(':', '') + '-' + Math.random().toString(36).slice(2, 5) + (set > 1 ? '-S' + set : '');
+  var sid = l.code + '-R-' + todayStr().replace(/-/g, '') + '-' + new Date().toTimeString().slice(0, 5).replace(':', '') + '-' + Math.random().toString(36).slice(2, 5) + (set > 1 ? '-S' + set : '');
   S = { learner: l, session: sid, P: P, idx: idx, si: 0, set: set, items: set === 1 ? P.s : extra[set - 2] };
   var on = sget('sb:' + l.name, !!l.sound); document.body.classList.toggle('sb', on); sbBtn.classList.toggle('on', on);
   if (r && r.set === set) { S.session = r.session; S.si = Math.min(r.si || 0, S.items.length); }
@@ -316,6 +319,7 @@ function sentence() {
   var textCard = el('div', { class: 'card textCard' },
     el('div', { class: 'setTag', text: SET_ICONS[S.set] + ' ' + SET_NAMES[S.set] }),
     el('div', { class: 'title', text: (P.bonus ? '🌟 ' : '') + P.title }),
+    P.focus ? el('div', { class: 'focusRow' }, 'Sounds to spot: ', P.focus.map(function (g) { return el('span', { class: 'focusG' + (g === P.newG ? ' newG' : ''), text: g + (g === P.newG ? ' ✨' : '') }); })) : null,
     el('div', { class: 'passage' }, el('div', { class: 'txt' }, !whole && S.si ? prev : null, cur), !whole && it.pic ? el('div', { class: 'pic', text: it.pic }) : null));
   var qCard = el('div', { class: 'card' }), fb = el('div');
   var evs = (it.ev || []).map(norm);
@@ -742,183 +746,171 @@ var WORD_G = {
 
 // Earlier stage passages: every word split into graphemes ('-'), split digraphs as a_e
 var MAH_PASSAGES = [
-  { id: 'MAH-OMS-1', title: 'At the sea', date: '2026-11-12', s: [
+  { id: 'ES-OMS-1', title: 'At the sea', date: '2026-11-12', s: [
     { t: 'I c-a-n s-ee th-e s-ea.', pic: '🌊', type: 'Retrieval', q: 'What can I see?', o: ['🌊 the sea', '🐶 a dog', '🚗 a car'], ev: ['sea'] },
     { t: 'Th-e s-u-n i-s h-o-t.', pic: '☀️', type: 'Yes or no', q: 'Is the sun hot?', o: ['✅ yes', '❌ no'], ev: ['hot'] },
     { t: 'A c-r-a-b i-s o-n a r-o-ck.', pic: '🦀', type: 'Retrieval', q: 'Where is the crab?', o: ['⛰️ on a rock', '🛏️ in bed', '🚗 in a car'], ev: ['rock'] },
     { t: 'Th-e b-oa-t h-a-s a r-e-d s-ai-l.', pic: '⛵', type: 'Retrieval', q: 'What colour is the sail?', o: ['❤️ red', '💙 blue', '💚 green'], ev: ['red'] },
     { t: 'F-i-sh s-w-i-m i-n th-e d-ee-p s-ea.', pic: '🐟', type: 'Retrieval', q: 'What swims in the sea?', o: ['🐟 fish', '🐱 a cat', '🐦 a bird'], ev: ['fish'] }
   ] },
-  { id: 'MAH-OMS-2', title: 'Rock pools', date: '2026-11-13', s: [
+  { id: 'ES-OMS-2', title: 'Rock pools', date: '2026-11-13', s: [
     { t: 'Th-e t-i_e-d i-s ou-t.', pic: '🏖️', type: 'Retrieval', q: 'Is the tide in or out?', o: ['out', 'in'], ev: ['out'] },
     { t: 'L-oo-k i-n th-e p-oo-l.', pic: '👀', type: 'Retrieval', q: 'Where do we look?', o: ['💧 in the pool', '🌳 up a tree', '👜 in a bag'], ev: ['pool'] },
     { t: 'A s-t-ar-f-i-sh i-s p-i-n-k.', pic: '⭐', type: 'Retrieval', q: 'What colour is the starfish?', o: ['🌸 pink', '🖤 black', '💛 yellow'], ev: ['pink'] },
     { t: 'Th-e c-r-a-b h-i_e-d-s u-n-d-er a s-t-o_e-n.', pic: '🦀', type: 'Retrieval', q: 'Where does the crab hide?', o: ['⛰️ under a stone', '☁️ in the sky', '🏠 in a house'], ev: ['under', 'stone'] },
     { t: 'I s-ee a sh-e-ll b-y m-y f-oo-t.', pic: '🐚', type: 'Retrieval', q: 'What do I see?', o: ['🐚 a shell', '🍎 an apple', '⚽ a ball'], ev: ['shell'] }
   ] },
-  { id: 'MAH-OMS-3', title: 'Clouds', date: '2026-11-16', s: [
+  { id: 'ES-OMS-3', title: 'Clouds', date: '2026-11-16', s: [
     { t: 'L-oo-k u-p a-t th-e s-k-y.', pic: '🌤️', type: 'Retrieval', q: 'Where do I look?', o: ['⬆️ up at the sky', '⬇️ down at the sand', '🚪 at the door'], ev: ['up', 'sky'] },
     { t: 'Th-e c-l-ou-d-s ar-e wh-i_e-t.', pic: '☁️', type: 'Retrieval', q: 'What colour are the clouds?', o: ['⚪ white', '❤️ red', '💚 green'], ev: ['white'] },
     { t: 'A b-ir-d f-l-ie-s h-igh.', pic: '🐦', type: 'Retrieval', q: 'What flies high?', o: ['🐦 a bird', '🐟 a fish', '🐶 a dog'], ev: ['bird'] },
     { t: 'Th-e w-i-n-d b-l-ow-s.', pic: '🌬️', type: 'Yes or no', q: 'Does the wind blow?', o: ['✅ yes', '❌ no'], ev: ['blows'] },
     { t: 'R-ai-n f-a-ll-s d-ow-n o-n th-e t-ow-n.', pic: '🌧️', type: 'Retrieval', q: 'What falls down?', o: ['🌧️ rain', '⭐ stars', '🍎 apples'], ev: ['rain'] }
   ] },
-  { id: 'MAH-OMS-4', title: 'The lighthouse', date: '2026-11-17', s: [
+  { id: 'ES-OMS-4', title: 'The lighthouse', date: '2026-11-17', s: [
     { t: 'Th-e l-igh-t i-s b-r-igh-t.', pic: '💡', type: 'Yes or no', q: 'Is the light bright?', o: ['✅ yes', '❌ no'], ev: ['bright'] },
     { t: 'I-t sh-i_e-n-s a-t n-igh-t.', pic: '🌃', type: 'Retrieval', q: 'When does it shine?', o: ['🌙 at night', '☀️ in the day'], ev: ['night'] },
     { t: 'Sh-i-p-s k-ee-p a-w-ay f-r-o-m th-e r-o-ck-s.', pic: '🚢', type: 'Retrieval', q: 'What do ships keep away from?', o: ['⛰️ the rocks', '🐟 the fish', '☀️ the sun'], ev: ['rocks'] },
     { t: 'A m-a-n l-i-ve-s a-t th-e t-o-p.', pic: '👨', type: 'Retrieval', q: 'Who lives at the top?', o: ['👨 a man', '🐶 a dog', '👑 a king'], ev: ['man'] },
     { t: 'H-e c-a-n h-ear th-e s-ea.', pic: '👂', type: 'Retrieval', q: 'What can he hear?', o: ['🌊 the sea', '🎵 a song', '🐶 a dog'], ev: ['sea'] }
   ] },
-  { id: 'MAH-OMS-5', title: 'Sunset', date: '2026-11-18', s: [
+  { id: 'ES-OMS-5', title: 'Sunset', date: '2026-11-18', s: [
     { t: 'Th-e s-u-n g-oe-s d-ow-n.', pic: '🌅', type: 'Yes or no', q: 'Does the sun go down?', o: ['✅ yes', '❌ no'], ev: ['down'] },
     { t: 'Th-e s-k-y t-ur-n-s or-a-n-ge.', pic: '🧡', type: 'Retrieval', q: 'What colour is the sky?', o: ['🧡 orange', '💙 blue', '🖤 black'], ev: ['orange'] },
     { t: 'W-e s-i-t o-n th-e s-a-n-d.', pic: '🏖️', type: 'Retrieval', q: 'Where do we sit?', o: ['🏖️ on the sand', '🌊 in the sea', '🌳 in a tree'], ev: ['sand'] },
     { t: 'G-r-a-n-d-a-d h-a-s a c-u-p o-f t-ea.', pic: '☕', type: 'Retrieval', q: 'What does Grandad have?', o: ['☕ a cup of tea', '🍕 a pizza', '🎈 a balloon'], ev: ['tea'] },
     { t: 'Th-e m-oo-n c-o-m-e-s ou-t s-oo-n.', pic: '🌙', type: 'Retrieval', q: 'What comes out?', o: ['🌙 the moon', '☀️ the sun', '🌈 a rainbow'], ev: ['moon'] }
   ] },
-  { id: 'MAH-OMS-6', title: 'A boat', date: '2026-11-19', s: [
+  { id: 'ES-OMS-6', title: 'A boat', date: '2026-11-19', s: [
     { t: 'F-i-nn m-a_e-k-s a b-oa-t.', pic: '⛵', type: 'Retrieval', q: 'What does Finn make?', o: ['⛵ a boat', '🏠 a house', '🚗 a car'], ev: ['boat'] },
     { t: 'H-e u_e-s-s w-oo-d a-n-d r-o_e-p.', pic: '🔨', type: 'Retrieval', q: 'What does he use?', o: ['🔨 wood and rope', '🍎 apples and pears', '🎁 toys'], ev: ['wood', 'rope'] },
     { t: 'Th-e s-ai-l i-s b-l-ue.', pic: '⛵', type: 'Retrieval', q: 'What colour is the sail?', o: ['💙 blue', '❤️ red', '💛 yellow'], ev: ['blue'] },
     { t: 'I-t f-l-oa-t-s o-n th-e w-a-t-er.', pic: '🌊', type: 'Yes or no', q: 'Does it float?', o: ['✅ yes', '❌ no'], ev: ['floats'] },
     { t: 'F-i-nn i-s h-a-pp-y.', pic: '😊', type: 'Retrieval', q: 'How does Finn feel?', o: ['😊 happy', '😢 sad', '😠 cross'], ev: ['happy'] }
   ] },
-  { id: 'MAH-MON-1', title: 'A king', date: '2026-11-20', s: [
+  { id: 'ES-MON-1', title: 'A king', date: '2026-11-20', s: [
     { t: 'Th-e k-i-ng h-a-s a c-r-ow-n.', pic: '👑', type: 'Retrieval', q: 'What does the king have?', o: ['👑 a crown', '🐶 a dog', '🚲 a bike'], ev: ['crown'] },
     { t: 'Th-e c-r-ow-n i-s g-o-l-d.', pic: '👑', type: 'Retrieval', q: 'What colour is the crown?', o: ['💛 gold', '💚 green', '💙 blue'], ev: ['gold'] },
     { t: 'H-e s-i-t-s o-n a th-r-o_e-n.', pic: '💺', type: 'Retrieval', q: 'Where does he sit?', o: ['💺 on a throne', '🛁 in a bath', '🌳 up a tree'], ev: ['throne'] },
     { t: 'A qu-ee-n i-s n-e-x-t t-o h-i-m.', pic: '👸', type: 'Retrieval', q: 'Who is next to him?', o: ['👸 a queen', '🐱 a cat', '👨‍🍳 a cook'], ev: ['queen'] },
     { t: 'Th-ey w-a_e-v t-o th-e c-r-ow-d.', pic: '👋', type: 'Retrieval', q: 'What do they do?', o: ['👋 wave', '😴 sleep', '🏊 swim'], ev: ['wave'] }
   ] },
-  { id: 'MAH-MON-2', title: 'The palace', date: '2026-11-24', s: [
-    { t: 'Th-e k-i-ng l-i-ve-s i-n a p-a-l-a-ce.', pic: '🏰', type: 'Retrieval', q: 'Where does the king live?', o: ['🏰 in a palace', '⛺ in a tent', '🚢 on a ship'], ev: ['palace'] },
-    { t: 'Th-e p-a-l-a-ce i-s b-i-g.', pic: '🏰', type: 'Yes or no', q: 'Is the palace big?', o: ['✅ yes', '❌ no'], ev: ['big'] },
-    { t: 'I-t h-a-s a l-o-ng h-a-ll.', pic: '🚪', type: 'Retrieval', q: 'What does it have?', o: ['🚪 a long hall', '🏊 a pool', '🌳 a big tree'], ev: ['hall'] },
-    { t: 'W-e s-ee a f-ea-s-t.', pic: '🍗', type: 'Retrieval', q: 'What do we see?', o: ['🍗 a feast', '🚗 a car', '📚 a book'], ev: ['feast'] },
-    { t: 'Th-e f-oo-d i-s g-oo-d.', pic: '😋', type: 'Yes or no', q: 'Is the food good?', o: ['✅ yes', '❌ no'], ev: ['good'] }
-  ] },
-  { id: 'MAH-MON-3', title: 'The queen', date: '2026-11-25', s: [
-    { t: 'Th-e qu-ee-n r-i_e-d-s a h-or-se.', pic: '🐴', type: 'Retrieval', q: 'What does the queen ride?', o: ['🐴 a horse', '🚲 a bike', '🚌 a bus'], ev: ['horse'] },
-    { t: 'Sh-e h-a-s a l-o-ng d-r-e-ss.', pic: '👗', type: 'Retrieval', q: 'What does she have?', o: ['👗 a long dress', '👟 shoes', '🧢 a cap'], ev: ['dress'] },
-    { t: 'H-er c-oa-t i-s r-e-d.', pic: '🧥', type: 'Retrieval', q: 'What colour is her coat?', o: ['❤️ red', '💚 green', '⚪ white'], ev: ['red'] },
-    { t: 'P-eo-p-le c-l-a-p a-n-d ch-ee-r.', pic: '👏', type: 'Retrieval', q: 'What do people do?', o: ['👏 clap and cheer', '😴 sleep', '🏃 run away'], ev: ['clap', 'cheer'] },
-    { t: 'Th-e qu-ee-n s-m-i_e-l-s.', pic: '😊', type: 'Retrieval', q: 'How does the queen feel?', o: ['😊 happy', '😢 sad', '😠 cross'], ev: ['smiles'] }
-  ] },
-  { id: 'MAH-MON-4', title: 'Bristol gets ready', date: '2026-11-26', s: [
-    { t: 'Th-e qu-ee-n w-i-ll c-o-m-e t-o B-r-i-s-t-o-l.', pic: '👸', type: 'Retrieval', q: 'Where will the queen come?', o: ['🏙️ to Bristol', '🏝️ to an island', '🌙 to the moon'], ev: ['bristol'] },
-    { t: 'M-e-n p-ai-n-t th-e g-a_e-t-s.', pic: '🎨', type: 'Retrieval', q: 'What do the men paint?', o: ['🚪 the gates', '🚗 the cars', '🐶 the dogs'], ev: ['gates'] },
-    { t: 'Th-e c-r-o-ss i-s g-o-l-d.', pic: '✨', type: 'Retrieval', q: 'What colour is the cross?', o: ['💛 gold', '💚 green', '💜 purple'], ev: ['gold'] },
-    { t: 'Th-ey p-u-t s-a-n-d o-n th-e r-oa-d.', pic: '🛣️', type: 'Retrieval', q: 'What do they put on the road?', o: ['🏖️ sand', '💧 water', '🍰 cake'], ev: ['sand'] },
-    { t: 'B-r-i-s-t-o-l g-i-ve-s h-er a g-i-f-t.', pic: '🎁', type: 'Retrieval', q: 'What does Bristol give her?', o: ['🎁 a gift', '🐶 a dog', '🚗 a car'], ev: ['gift'] }
-  ] },
+  {"id": "ES-MON-2", "title": "The palace", "date": "2026-11-24", "focus": ["th", "sh", "ai", "ay"], "newG": "ay", "s": [
+    {"t": "K-i-ng H-e-n-r-y h-a-d a b-i-g p-a-l-a-ce b-y th-e r-i-v-er.", "pic": "🏰", "type": "Retrieval", "q": "What did King Henry have?", "o": ["a big palace", "a little tent", "a red car"], "ev": ["palace"]},
+    {"t": "Th-e p-a-l-a-ce h-a-d l-o-ng h-a-ll-s, t-a-ll t-ow-er-s a-n-d sh-i-n-y g-l-a-ss.", "pic": "🏰", "type": "Retrieval", "q": "What was shiny?", "o": ["the glass", "the mud", "the dog"], "ev": ["shiny", "glass"]},
+    {"t": "Th-e k-i-ng l-i_e-k-d t-o p-l-ay g-a_e-m-s a-n-d d-a-n-ce a-ll d-ay.", "pic": "💃", "type": "Retrieval", "q": "What did the king like to do?", "o": ["play games and dance", "swim and sleep", "read and paint"], "ev": ["play", "games"]},
+    {"t": "I-n th-e r-ai-n, h-e s-t-ay-ed i-n-s-i_e-d a-n-d h-a-d a f-ea-s-t.", "pic": "🌧️", "type": "Retrieval", "q": "What did he do in the rain?", "o": ["stayed inside and had a feast", "went for a swim", "slept in a tent"], "ev": ["stayed", "inside"]},
+    {"t": "Th-e c-oo-k-s w-or-k-ed h-ar-d, a-n-d th-e d-i-sh-e-s w-ere f-u-ll.", "pic": "🍗", "type": "Inference", "q": "Was it easy to be a cook?", "o": ["No, they worked hard.", "Yes, they did nothing."], "ev": ["worked", "hard"], "a": 0}]},
+  {"id": "ES-MON-3", "title": "The queen", "date": "2026-11-25", "focus": ["oo", "ee", "oa", "ou", "ie"], "newG": "ie", "s": [
+    {"t": "Qu-ee-n E-l-i-z-a-b-e-th r-u_e-l-d f-or a l-o-ng t-i_e-m.", "pic": "👸", "type": "Retrieval", "q": "Who ruled for a long time?", "o": ["Queen Elizabeth", "King Henry", "Tom the cook"], "ev": ["elizabeth"]},
+    {"t": "Sh-e w-ore a g-r-ee-n g-ow-n a-n-d a l-o-ng c-oa-t.", "pic": "👗", "type": "Retrieval", "q": "What colour was her gown?", "o": ["green", "red", "black"], "ev": ["green"]},
+    {"t": "Sh-e l-i_e-k-d t-o r-ea-d b-oo-k-s i-n h-er r-oo-m.", "pic": "📚", "type": "Retrieval", "q": "What did she like to read?", "o": ["books", "maps", "nothing"], "ev": ["books"]},
+    {"t": "Sh-e r-o_e-d h-er h-or-se d-ow-n th-e r-oa-d u-n-d-er th-e w-i_e-d s-k-ie-s.", "pic": "🐴", "type": "Retrieval", "q": "Where did she ride?", "o": ["down the road under the skies", "in a shop", "in the sea"], "ev": ["road", "skies"]},
+    {"t": "Th-e p-eo-p-le ch-eer-ed, sh-ou-t-ed a-n-d c-r-ie-d ou-t wh-e-n sh-e c-a_e-m b-y.", "pic": "🙌", "type": "Inference", "q": "Did the people like the queen?", "o": ["Yes, they cheered and shouted.", "No, they ran away."], "ev": ["cheered"], "a": 0}]},
+  {"id": "ES-MON-4", "title": "Bristol gets ready", "date": "2026-11-26", "focus": ["ck", "ow", "ar", "ea", "oy"], "newG": "oy", "s": [
+    {"t": "Th-e qu-ee-n w-a-s c-o-m-i-ng, s-o B-r-i-s-t-o-l g-o-t r-ea-d-y.", "pic": "👸", "type": "Retrieval", "q": "Who was coming to Bristol?", "o": ["the queen", "a pirate", "a shark"], "ev": ["queen"]},
+    {"t": "M-e-n w-or-k-ed h-ar-d a-n-d p-ai-n-t-ed th-e g-a_e-t-s b-l-a-ck a-n-d g-o-l-d.", "pic": "🎨", "type": "Retrieval", "q": "What colours did they paint the gates?", "o": ["black and gold", "pink and green", "blue"], "ev": ["black", "gold"]},
+    {"t": "Th-ey s-w-e-p-t th-e s-t-r-ee-t-s a-n-d p-a-ck-ed s-a-n-d o-n th-e r-oa-d-s.", "pic": "🛣️", "type": "Retrieval", "q": "What did they pack on the roads?", "o": ["sand", "cake", "paint"], "ev": ["sand"]},
+    {"t": "B-oy-s a-n-d g-ir-l-s l-ear-n-t s-o-ng-s w-i-th g-r-ea-t j-oy.", "pic": "🎵", "type": "Yes or no", "q": "Did the children learn songs?", "o": ["✅ yes", "❌ no"], "ev": ["songs"], "a": 0},
+    {"t": "A-ll th-e t-ow-n w-a-s b-u-s-y, a-n-d th-e c-r-ow-d-s w-ere h-a-pp-y.", "pic": "😀", "type": "Inference", "q": "How did people in Bristol feel?", "o": ["busy and happy", "sad and sleepy", "cross"], "ev": ["happy"]}]},
   // ---- 27 Nov main text ----
-  { id: 'MAH-MON-5', title: 'The queen comes', date: '2026-11-27', s: [
-    { t: 'Th-e qu-ee-n r-i_e-d-s t-o B-r-i-s-t-o-l.', pic: '👸', type: 'Retrieval', q: 'Who rides to Bristol?', o: ['👸 the queen', '👦 a boy', '🐶 a dog'], ev: ['queen'] },
-    { t: 'A b-i-g c-r-ow-d ch-eer-s.', pic: '🎉', type: 'Yes or no', q: 'Does the crowd cheer?', o: ['✅ yes', '❌ no'], ev: ['cheers'] },
-    { t: 'Sh-e h-a-s a l-o-ng g-ow-n.', pic: '👗', type: 'Retrieval', q: 'What does the queen have?', o: ['👗 a long gown', '🎒 a bag', '🧢 a cap'], ev: ['gown'] },
-    { t: 'A b-oy s-ay-s h-e-ll-o.', pic: '👦', type: 'Retrieval', q: 'Who says hello?', o: ['👦 a boy', '🤴 a king', '🐱 a cat'], ev: ['boy'] },
-    { t: 'Th-e qu-ee-n i-s g-l-a-d.', pic: '😀', type: 'Yes or no', q: 'Is the queen glad?', o: ['✅ yes', '❌ no'], ev: ['glad'] }
-  ] },
+  {"id": "ES-MON-5", "title": "The queen comes", "date": "2026-11-27", "focus": ["i_e", "ur", "er", "ear", "ir"], "newG": "ir", "s": [
+    {"t": "A-t l-a-s-t, th-e qu-ee-n r-o_e-d i-n-t-o B-r-i-s-t-o-l o-n a wh-i_e-t h-or-se.", "pic": "👸", "type": "Retrieval", "q": "What did the queen ride?", "o": ["a white horse", "a bike", "a bus"], "ev": ["white", "horse"]},
+    {"t": "T-r-u-m-p-e-t-s b-l-a-s-t-ed a-n-d th-e c-r-ow-d-s ch-eer-ed l-ou-d-er a-n-d l-ou-d-er.", "pic": "🎺", "type": "Retrieval", "q": "What blasted?", "o": ["trumpets", "drums", "bells"], "ev": ["trumpets"]},
+    {"t": "Sh-e w-ore a p-ur-p-le g-ow-n w-i-th p-ear-l-s a-n-d a f-i_e-n c-r-ow-n.", "pic": "👗", "type": "Retrieval", "q": "What colour was her gown?", "o": ["purple", "green", "black"], "ev": ["purple"]},
+    {"t": "A b-oy a-n-d a g-ir-l s-t-e-pp-ed n-ear t-o g-i-ve a s-p-ee-ch.", "pic": "👦", "type": "Retrieval", "q": "Who gave a speech?", "o": ["a boy and a girl", "the queen", "a dog"], "ev": ["boy", "girl"]},
+    {"t": "Th-e qu-ee-n s-m-i_e-l-d a-n-d s-ai-d th-a-n-k y-ou t-o th-e b-oy a-n-d g-ir-l.", "pic": "😀", "type": "Inference", "q": "Was the queen pleased?", "o": ["Yes, she smiled and said thank you.", "No, she went home."], "ev": ["smiled", "thank"], "a": 0}]},
   // ---- bonus texts, same order as the Y3 bonus texts ----
-  { id: 'MAH-OMS-5a', title: 'Gulls', bonus: '2026-11-18', s: [
+  { id: 'ES-OMS-5a', title: 'Gulls', bonus: '2026-11-18', s: [
     { t: 'A g-u-ll i-s wh-i_e-t a-n-d g-r-ey.', pic: '🐦', type: 'Retrieval', q: 'What colour is the gull?', o: ['⚪ white and grey', '❤️ red', '💚 green'], ev: ['white', 'grey'] },
     { t: 'I-t h-a-s a y-e-ll-ow b-ea-k.', pic: '💛', type: 'Retrieval', q: 'What colour is the beak?', o: ['💛 yellow', '💙 blue', '🖤 black'], ev: ['yellow'] },
     { t: 'Th-e g-u-ll c-a-n f-l-y.', pic: '🐦', type: 'Yes or no', q: 'Can the gull fly?', o: ['✅ yes', '❌ no'], ev: ['fly'] },
     { t: 'I-t ea-t-s f-i-sh.', pic: '🐟', type: 'Retrieval', q: 'What does it eat?', o: ['🐟 fish', '🍰 cake', '🥕 carrots'], ev: ['fish'] },
     { t: 'Th-e g-u-ll i-s v-er-y l-ou-d.', pic: '📢', type: 'Yes or no', q: 'Is the gull quiet?', o: ['✅ yes', '❌ no'], a: 1, ev: ['loud'] }
   ] },
-  { id: 'MAH-OMS-5b', title: 'A kite', bonus: '2026-11-18', s: [
+  { id: 'ES-OMS-5b', title: 'A kite', bonus: '2026-11-18', s: [
     { t: 'M-ay-a h-a-s a r-e-d k-i_e-t.', pic: '❤️', type: 'Retrieval', q: 'What colour is the kite?', o: ['❤️ red', '💙 blue', '💛 yellow'], ev: ['red'] },
     { t: 'Th-e w-i-n-d i-s s-t-r-o-ng.', pic: '🌬️', type: 'Yes or no', q: 'Is the wind strong?', o: ['✅ yes', '❌ no'], ev: ['strong'] },
     { t: 'Th-e k-i_e-t g-oe-s u-p a-n-d u-p.', pic: '⬆️', type: 'Retrieval', q: 'Where does the kite go?', o: ['⬆️ up', '⬇️ down', '🏠 home'], ev: ['up'] },
     { t: 'I-t i-s h-igh i-n th-e s-k-y.', pic: '☁️', type: 'Retrieval', q: 'Where is the kite?', o: ['☁️ in the sky', '🌊 in the sea', '🌳 in a tree'], ev: ['sky'] },
     { t: 'M-ay-a i-s s-o h-a-pp-y.', pic: '😀', type: 'Yes or no', q: 'Is Maya sad?', o: ['✅ yes', '❌ no'], a: 1, ev: ['happy'] }
   ] },
-  { id: 'MAH-OMS-6a', title: 'The salty sea', bonus: '2026-11-19', s: [
+  { id: 'ES-OMS-6a', title: 'The salty sea', bonus: '2026-11-19', s: [
     { t: 'Th-e s-ea i-s s-a-l-t-y.', pic: '🌊', type: 'Retrieval', q: 'What is the sea like?', o: ['🌊 salty', '🍰 sweet', '🍋 sour'], ev: ['salty'] },
     { t: 'R-ai-n f-a-ll-s o-n th-e r-o-ck-s.', pic: '🌧️', type: 'Retrieval', q: 'What falls on the rocks?', o: ['🌧️ rain', '🍎 apples', '⭐ stars'], ev: ['rain'] },
     { t: 'R-i-v-er-s r-u-n t-o th-e s-ea.', pic: '🏞️', type: 'Retrieval', q: 'Where do rivers run?', o: ['🌊 to the sea', '⛰️ up a hill', '🏠 to a house'], ev: ['sea'] },
     { t: 'Th-e s-u-n i-s h-o-t.', pic: '☀️', type: 'Yes or no', q: 'Is the sun hot?', o: ['✅ yes', '❌ no'], ev: ['hot'] },
     { t: 'Th-e s-a-l-t s-t-ay-s i-n th-e s-ea.', pic: '🌊', type: 'Retrieval', q: 'What stays in the sea?', o: ['salt', 'sand', 'snow'], ev: ['salt'] }
   ] },
-  { id: 'MAH-OMS-6b', title: 'Stars', bonus: '2026-11-19', s: [
+  { id: 'ES-OMS-6b', title: 'Stars', bonus: '2026-11-19', s: [
     { t: 'I-t i-s n-igh-t.', pic: '🌃', type: 'Yes or no', q: 'Is it night?', o: ['✅ yes', '❌ no'], ev: ['night'] },
     { t: 'M-ay-a a-n-d G-r-a-n-d-m-a g-o t-o th-e b-ay.', pic: '👵', type: 'Retrieval', q: 'Who goes with Maya?', o: ['👵 Grandma', '👶 a baby', '🐶 a dog'], ev: ['grandma'] },
     { t: 'Th-e s-t-ar-s ar-e b-r-igh-t.', pic: '⭐', type: 'Retrieval', q: 'What is bright?', o: ['⭐ the stars', '🌳 the trees', '🐟 the fish'], ev: ['stars'] },
     { t: 'Th-e m-oo-n i-s s-i-l-v-er.', pic: '🌙', type: 'Retrieval', q: 'What colour is the moon?', o: ['⚪ silver', '❤️ red', '💚 green'], ev: ['silver'] },
     { t: 'Th-e s-ea i-s s-t-i-ll.', pic: '🌊', type: 'Yes or no', q: 'Is the sea still?', o: ['✅ yes', '❌ no'], ev: ['still'] }
   ] },
-  { id: 'MAH-MON-1a', title: 'The crown', bonus: '2026-11-20', s: [
+  { id: 'ES-MON-1a', title: 'The crown', bonus: '2026-11-20', s: [
     { t: 'Th-e k-i-ng h-a-s a c-r-ow-n.', pic: '👑', type: 'Retrieval', q: 'What does the king have?', o: ['👑 a crown', '🎩 a hat', '🧢 a cap'], ev: ['crown'] },
     { t: 'I-t i-s g-o-l-d.', pic: '💛', type: 'Retrieval', q: 'What colour is it?', o: ['💛 gold', '💚 green', '💙 blue'], ev: ['gold'] },
     { t: 'I-t h-a-s r-e-d j-ew-e-l-s.', pic: '💎', type: 'Retrieval', q: 'What colour are the jewels?', o: ['❤️ red', '💛 yellow', '🖤 black'], ev: ['red'] },
     { t: 'Th-e c-r-ow-n i-s h-ea-v-y.', pic: '👑', type: 'Yes or no', q: 'Is the crown heavy?', o: ['✅ yes', '❌ no'], ev: ['heavy'] },
     { t: 'M-e-n k-ee-p i-t s-a_e-f.', pic: '🏰', type: 'Retrieval', q: 'Who keeps it safe?', o: ['👨 men', '🐶 dogs', '👶 babies'], ev: ['men'] }
   ] },
-  { id: 'MAH-MON-1b', title: 'A card', bonus: '2026-11-20', s: [
+  { id: 'ES-MON-1b', title: 'A card', bonus: '2026-11-20', s: [
     { t: 'A-m-i-r-a m-a_e-k-s a c-ar-d.', pic: '✉️', type: 'Retrieval', q: 'What does Amira make?', o: ['✉️ a card', '🎂 a cake', '🎈 a balloon'], ev: ['card'] },
     { t: 'Sh-e d-r-aw-s a c-r-ow-n.', pic: '👑', type: 'Retrieval', q: 'What does she draw?', o: ['👑 a crown', '🐶 a dog', '🚗 a car'], ev: ['crown'] },
     { t: 'Th-e k-i-ng c-o-m-e-s t-o t-ow-n.', pic: '🤴', type: 'Retrieval', q: 'Who comes to town?', o: ['🤴 the king', '🐱 a cat', '👦 a boy'], ev: ['king'] },
     { t: 'A-m-i-r-a g-i-ve-s h-i-m th-e c-ar-d.', pic: '🎁', type: 'Yes or no', q: 'Does Amira give the king the card?', o: ['✅ yes', '❌ no'], ev: ['gives'] },
     { t: 'Th-e k-i-ng s-m-i_e-l-s.', pic: '😀', type: 'Yes or no', q: 'Does the king smile?', o: ['✅ yes', '❌ no'], ev: ['smiles'] }
   ] },
-  { id: 'MAH-MON-2a', title: 'The kitchen', bonus: '2026-11-24', s: [
-    { t: 'Th-e k-i-tch-e-n i-s b-i-g.', pic: '🏰', type: 'Yes or no', q: 'Is the kitchen big?', o: ['✅ yes', '❌ no'], ev: ['big'] },
-    { t: 'I-t i-s v-er-y h-o-t.', pic: '🔥', type: 'Retrieval', q: 'Is it hot or cold?', o: ['🔥 hot', '❄️ cold'], ev: ['hot'] },
-    { t: 'C-oo-k-s m-a_e-k f-oo-d f-or th-e k-i-ng.', pic: '🍗', type: 'Retrieval', q: 'Who makes the food?', o: ['cooks', 'cats', 'kings'], ev: ['cooks'] },
-    { t: 'M-ea-t c-oo-k-s o-n th-e f-i_e-r.', pic: '🍖', type: 'Retrieval', q: 'Where does the meat cook?', o: ['🔥 on the fire', '❄️ in the snow', '🛁 in the bath'], ev: ['fire'] },
-    { t: 'Th-e k-i-ng h-a-s a b-i-g f-ea-s-t.', pic: '🍗', type: 'Yes or no', q: 'Does the king have a small meal?', o: ['✅ yes', '❌ no'], a: 1, ev: ['big', 'feast'] }
-  ] },
-  { id: 'MAH-MON-2b', title: 'Tom', bonus: '2026-11-24', s: [
-    { t: 'T-o-m c-a-rr-ie-s l-o-g-s.', pic: '🌳', type: 'Retrieval', q: 'What does Tom carry?', o: ['🌳 logs', '🥛 milk', '🍞 bread'], ev: ['logs'] },
-    { t: 'H-e p-u-t-s th-e-m o-n th-e f-i_e-r.', pic: '🔥', type: 'Retrieval', q: 'Where does he put them?', o: ['🔥 on the fire', '🛏️ on the bed', '🚗 in a car'], ev: ['fire'] },
-    { t: 'Th-e c-oo-k-s m-a_e-k p-ie-s.', pic: '🥧', type: 'Retrieval', q: 'What do the cooks make?', o: ['🥧 pies', '🍕 pizza', '🍦 ice cream'], ev: ['pies'] },
-    { t: 'T-o-m i-s h-u-n-g-r-y.', pic: '😋', type: 'Yes or no', q: 'Is Tom hungry?', o: ['✅ yes', '❌ no'], ev: ['hungry'] },
-    { t: 'Th-e c-oo-k g-i-ve-s T-o-m a p-ie.', pic: '🥧', type: 'Retrieval', q: 'What does Tom get?', o: ['🥧 a pie', '🍎 an apple', '🎁 a present'], ev: ['pie'] }
-  ] },
-  { id: 'MAH-MON-3a', title: 'Bess', bonus: '2026-11-25', s: [
-    { t: 'B-e-ss i-s r-i-ch.', pic: '💰', type: 'Yes or no', q: 'Is Bess rich?', o: ['✅ yes', '❌ no'], ev: ['rich'] },
-    { t: 'Sh-e b-ui-l-d-s a b-i-g h-ou-se.', pic: '🏠', type: 'Retrieval', q: 'What does Bess build?', o: ['🏠 a house', '🚢 a ship', '🚗 a car'], ev: ['house'] },
-    { t: 'Th-e h-ou-se h-a-s l-o-t-s o-f w-i-n-d-ow-s.', pic: '🏰', type: 'Retrieval', q: 'What does the house have lots of?', o: ['windows', 'doors', 'dogs'], ev: ['windows'] },
-    { t: 'Th-e w-i-n-d-ow-s ar-e b-i-g.', pic: '🏰', type: 'Yes or no', q: 'Are the windows small?', o: ['✅ yes', '❌ no'], a: 1, ev: ['big'] },
-    { t: 'Sh-e i-s v-er-y p-r-ou-d.', pic: '😀', type: 'Retrieval', q: 'How does Bess feel?', o: ['😀 proud', '😢 sad', '😠 cross'], ev: ['proud'] }
-  ] },
-  { id: 'MAH-MON-3b', title: 'School', bonus: '2026-11-25', s: [
-    { t: 'W-i-ll g-oe-s t-o s-ch-oo-l.', pic: '🏫', type: 'Retrieval', q: 'Where does Will go?', o: ['🏫 to school', '🏖️ to the beach', '🛒 to the shop'], ev: ['school'] },
-    { t: 'I-t i-s d-ar-k a-n-d c-o-l-d.', pic: '🌑', type: 'Yes or no', q: 'Is it dark?', o: ['✅ yes', '❌ no'], ev: ['dark'] },
-    { t: 'H-e h-a-s a b-oo-k m-a_e-d o-f w-oo-d.', pic: '📖', type: 'Retrieval', q: 'What is his book made of?', o: ['🌳 wood', '🧀 cheese', '❄️ ice'], ev: ['wood'] },
-    { t: 'Th-e b-oy-s r-ea-d a-l-ou-d.', pic: '📖', type: 'Yes or no', q: 'Do the boys read?', o: ['✅ yes', '❌ no'], ev: ['read'] },
-    { t: 'W-i-ll r-u-n-s h-o_e-m.', pic: '🏠', type: 'Retrieval', q: 'Where does Will run?', o: ['🏠 home', '🏫 to school', '🌊 to the sea'], ev: ['home'] }
-  ] },
-  { id: 'MAH-MON-4a', title: 'Ships in Bristol', bonus: '2026-11-26', s: [
-    { t: 'B-r-i-s-t-o-l h-a-s l-o-t-s o-f sh-i-p-s.', pic: '🚢', type: 'Retrieval', q: 'What does Bristol have lots of?', o: ['🚢 ships', '🚀 rockets', '🐘 elephants'], ev: ['ships'] },
-    { t: 'Th-e sh-i-p-s s-ai-l u-p th-e r-i-v-er.', pic: '⛵', type: 'Retrieval', q: 'Where do the ships sail?', o: ['up the river', 'up a hill', 'up a tree'], ev: ['river'] },
-    { t: 'M-e-n r-o-ll b-a-rr-e-l-s.', pic: '🛢️', type: 'Retrieval', q: 'What do the men roll?', o: ['barrels', 'balls', 'cars'], ev: ['barrels'] },
-    { t: 'G-u-ll-s s-qu-aw-k.', pic: '🐦', type: 'Yes or no', q: 'Are the gulls quiet?', o: ['✅ yes', '❌ no'], a: 1, ev: ['squawk'] },
-    { t: 'I-t i-s v-er-y b-u-s-y.', pic: '🚢', type: 'Yes or no', q: 'Is it busy?', o: ['✅ yes', '❌ no'], ev: ['busy'] }
-  ] },
-  { id: 'MAH-MON-4b', title: 'The market', bonus: '2026-11-26', s: [
-    { t: 'K-i-t g-oe-s t-o th-e m-ar-k-e-t.', pic: '🛒', type: 'Retrieval', q: 'Where does Kit go?', o: ['🛒 to the market', '🏫 to school', '🌊 to the sea'], ev: ['market'] },
-    { t: 'Th-ere i-s b-r-ea-d a-n-d ch-ee-se.', pic: '🧀', type: 'Retrieval', q: 'What is there?', o: ['🧀 cheese', '🍕 pizza', '🍫 chocolate'], ev: ['cheese'] },
-    { t: 'A m-a-n s-e-ll-s r-i-bb-o-n-s.', pic: '🎀', type: 'Retrieval', q: 'What does the man sell?', o: ['🎀 ribbons', '🎈 balloons', '📚 books'], ev: ['ribbons'] },
-    { t: 'D-a-d g-e-t-s K-i-t a r-e-d a-pp-le.', pic: '🍎', type: 'Retrieval', q: 'What does Kit get?', o: ['🍎 a red apple', '🍌 a banana', '🍇 grapes'], ev: ['apple'] },
-    { t: 'Sh-e ea-t-s i-t a-ll u-p.', pic: '😋', type: 'Yes or no', q: 'Does Kit eat the apple?', o: ['✅ yes', '❌ no'], ev: ['eats'] }
-  ] },
-  { id: 'MAH-MON-5a', title: 'Music', bonus: '2026-11-27', s: [
-    { t: 'Th-e qu-ee-n l-i_e-k-s m-u-s-i-c.', pic: '🎵', type: 'Retrieval', q: 'What does the queen like?', o: ['🎵 music', '⚽ football', '🐶 dogs'], ev: ['music'] },
-    { t: 'Sh-e c-a-n p-l-ay.', pic: '🎹', type: 'Yes or no', q: 'Can she play?', o: ['✅ yes', '❌ no'], ev: ['play'] },
-    { t: 'M-e-n b-ea-t d-r-u-m-s.', pic: '🥁', type: 'Retrieval', q: 'What do the men beat?', o: ['🥁 drums', '🚪 doors', '🍳 pans'], ev: ['drums'] },
-    { t: 'Th-e qu-ee-n d-a-n-ce-s.', pic: '💃', type: 'Yes or no', q: 'Does the queen dance?', o: ['✅ yes', '❌ no'], ev: ['dances'] },
-    { t: 'Sh-e s-p-i-n-s r-ou-n-d a-n-d r-ou-n-d.', pic: '💃', type: 'Retrieval', q: 'How does she spin?', o: ['round and round', 'up and down', 'in and out'], ev: ['round'] }
-  ] },
-  { id: 'MAH-MON-5b', title: 'A Tudor house', bonus: '2026-11-27', s: [
-    { t: 'Th-i-s i-s a T-u-d-or h-ou-se.', pic: '🏠', type: 'Yes or no', q: 'Is this a Tudor house?', o: ['✅ yes', '❌ no'], ev: ['house'] },
-    { t: 'I-t i-s b-l-a-ck a-n-d wh-i_e-t.', pic: '🏠', type: 'Retrieval', q: 'What colours is the house?', o: ['🖤 black and white', '❤️ red and blue', '💚 green'], ev: ['black', 'white'] },
-    { t: 'Th-e w-a-ll-s ar-e m-u-d.', pic: '🏠', type: 'Retrieval', q: 'What are the walls made of?', o: ['mud', 'glass', 'cake'], ev: ['mud'] },
-    { t: 'Th-e r-oo-f i-s s-t-r-aw.', pic: '🌾', type: 'Retrieval', q: 'What is the roof made of?', o: ['🌾 straw', '🍫 chocolate', '❄️ ice'], ev: ['straw'] },
-    { t: 'I-t i-s w-ar-m i-n-s-i_e-d.', pic: '🔥', type: 'Yes or no', q: 'Is it warm inside?', o: ['✅ yes', '❌ no'], ev: ['warm'] }
-  ] }
+  {"id": "ES-MON-2a", "title": "The kitchen", "bonus": "2026-11-24", "focus": ["th", "sh", "ai", "ay"], "newG": "ay", "s": [
+    {"t": "Th-e k-i-tch-e-n w-a-s h-o-t a-n-d b-u-s-y a-ll d-ay.", "pic": "🔥", "type": "Retrieval", "q": "What was the kitchen like?", "o": ["hot and busy", "cold and still", "wet and dark"], "ev": ["hot", "busy"]},
+    {"t": "C-oo-k-s r-oa-s-t-ed m-ea-t a-n-d f-i-sh b-y th-e f-i_e-r.", "pic": "🍖", "type": "Retrieval", "q": "What did the cooks roast?", "o": ["meat and fish", "cake", "apples"], "ev": ["meat", "fish"]},
+    {"t": "B-a-k-er-s m-a_e-d b-r-ea-d a-n-d l-ai-d i-t o-n a t-r-ay.", "pic": "🍞", "type": "Retrieval", "q": "Where did they put the bread?", "o": ["on a tray", "in the sea", "on the roof"], "ev": ["tray"]},
+    {"t": "A b-oy w-a-sh-ed th-e d-i-sh-e-s i-n a b-i-g p-ai-l.", "pic": "🍽️", "type": "Retrieval", "q": "What did the boy wash?", "o": ["the dishes", "the dog", "the king"], "ev": ["dishes"]},
+    {"t": "Th-e k-i-ng s-ai-d th-e f-ea-s-t w-a-s th-e b-e-s-t.", "pic": "🤴", "type": "Inference", "q": "How did the king feel about the feast?", "o": ["pleased", "cross", "sleepy"], "ev": ["best"]}]},
+  {"id": "ES-MON-2b", "title": "Tom", "bonus": "2026-11-24", "focus": ["th", "sh", "ai", "ay"], "newG": "ay", "s": [
+    {"t": "T-o-m g-o-t u-p b-e-f-ore d-ay-l-igh-t.", "pic": "🌑", "type": "Inference", "q": "Was it light or dark when Tom got up?", "o": ["dark", "light"], "ev": ["before", "daylight"], "a": 0, "why": "It was before daylight."},
+    {"t": "H-e c-a-rr-ie-d l-o-g-s t-o th-e f-i_e-r i-n th-e r-ai-n.", "pic": "🌳", "type": "Retrieval", "q": "What did Tom carry?", "o": ["logs", "fish", "gold"], "ev": ["logs"]},
+    {"t": "Th-e c-oo-k-s r-u-sh-ed p-a-s-t w-i-th d-i-sh-e-s o-f p-ie-s.", "pic": "🥧", "type": "Retrieval", "q": "What was in the dishes?", "o": ["pies", "books", "hats"], "ev": ["pies"]},
+    {"t": "T-o-m w-a-s h-u-n-g-r-y, b-u-t h-e d-i-d n-o-t c-o-m-p-l-ai-n.", "pic": "😋", "type": "Yes or no", "q": "Did Tom complain?", "o": ["✅ yes", "❌ no"], "ev": ["not", "complain"], "a": 1},
+    {"t": "Th-e c-oo-k s-ai-d T-o-m c-ou-l-d s-t-ay a-n-d h-a-ve a p-ie.", "pic": "🥧", "type": "Retrieval", "q": "What did the cook say Tom could have?", "o": ["a pie", "a horse", "a crown"], "ev": ["pie"]}]},
+  {"id": "ES-MON-3a", "title": "Bess", "bonus": "2026-11-25", "focus": ["oo", "ee", "oa", "ou", "ie"], "newG": "ie", "s": [
+    {"t": "B-e-ss o-f H-ar-d-w-i-ck w-a-s a r-i-ch a-n-d p-r-ou-d T-u-d-or w-o-m-a-n.", "pic": "👩", "type": "Retrieval", "q": "What was Bess like?", "o": ["rich and proud", "poor and sad", "small and shy"], "ev": ["rich", "proud"]},
+    {"t": "Sh-e h-a-d f-ar-m-s, g-oa-t-s, sh-ee-p a-n-d g-o-l-d.", "pic": "🐑", "type": "Retrieval", "q": "Which animals did Bess have?", "o": ["goats and sheep", "cats and dogs", "lions"], "ev": ["goats", "sheep"]},
+    {"t": "Sh-e b-ui-l-t a h-ou-se w-i-th a h-u_e-g r-oo-f a-n-d m-a-n-y r-oo-m-s.", "pic": "🏰", "type": "Retrieval", "q": "What did the house have?", "o": ["a huge roof and many rooms", "no roof", "one room"], "ev": ["roof", "rooms"]},
+    {"t": "I-t h-a-d s-o m-a-n-y w-i-n-d-ow-s i-t sh-o_e-n u-n-d-er th-e s-k-ie-s.", "pic": "☀️", "type": "Retrieval", "q": "What did the house have lots of?", "o": ["windows", "doors", "trees"], "ev": ["windows"]},
+    {"t": "B-e-ss s-a-t i-n h-er r-oo-m, f-ee-l-i-ng v-er-y p-r-ou-d.", "pic": "😀", "type": "Inference", "q": "How did Bess feel about her house?", "o": ["proud", "sad", "bored"], "ev": ["proud"]}]},
+  {"id": "ES-MON-3b", "title": "School", "bonus": "2026-11-25", "focus": ["oo", "ee", "oa", "ou", "ie"], "newG": "ie", "s": [
+    {"t": "W-i-ll w-a-l-k-ed t-o s-ch-oo-l i-n th-e c-o-l-d, d-ar-k m-or-n-i-ng w-i-th f-r-ee-z-i-ng f-ee-t.", "pic": "🌑", "type": "Retrieval", "q": "When did Will go to school?", "o": ["in the dark morning", "at lunchtime", "after tea"], "ev": ["dark", "morning"]},
+    {"t": "H-e w-ore a th-i-ck c-oa-t a-n-d h-a-d a l-oa-f a-n-d a b-oo-k i-n h-i-s p-ou-ch.", "pic": "📖", "type": "Retrieval", "q": "Where was his book?", "o": ["in his pouch", "in the sea", "on the roof"], "ev": ["pouch"]},
+    {"t": "Th-e b-oy-s s-a-t o-n h-ar-d s-ea-t-s i-n a l-o-ng r-oo-m.", "pic": "🏫", "type": "Retrieval", "q": "What did the boys sit on?", "o": ["hard seats", "soft chairs", "the floor"], "ev": ["seats"]},
+    {"t": "Th-ey r-ea-d ou-t l-ou-d u-n-t-i-l th-ey kn-ew e-v-er-y w-or-d.", "pic": "🗣️", "type": "Yes or no", "q": "Did the boys read quietly?", "o": ["✅ yes", "❌ no"], "ev": ["loud"], "a": 1},
+    {"t": "W-i-ll t-r-ie-d n-o-t t-o sh-ou-t wh-e-n th-e b-e-ll r-a-ng.", "pic": "🔔", "type": "Inference", "q": "Why did Will want to shout?", "o": ["He was glad school was over.", "He lost his book.", "He was cold."], "ev": ["bell", "rang"]}]},
+  {"id": "ES-MON-4a", "title": "Ships in Bristol", "bonus": "2026-11-26", "focus": ["ck", "ow", "ar", "ea", "oy"], "newG": "oy", "s": [
+    {"t": "L-o-ng a-g-o, B-r-i-s-t-o-l w-a-s a b-u-s-y p-or-t w-i-th a b-i-g d-o-ck.", "pic": "🚢", "type": "Retrieval", "q": "What was Bristol long ago?", "o": ["a busy port", "a quiet farm", "a big forest"], "ev": ["port"]},
+    {"t": "T-a-ll sh-i-p-s s-ai-l-ed d-ow-n th-e r-i-v-er t-o th-e s-ea.", "pic": "⛵", "type": "Retrieval", "q": "Where did the ships sail?", "o": ["down the river to the sea", "up a hill", "into the sky"], "ev": ["river", "sea"]},
+    {"t": "S-ai-l-or-s r-o-ll-ed b-a-rr-e-l-s o-f w-i_e-n o-n-t-o th-e d-e-ck.", "pic": "🛢️", "type": "Retrieval", "q": "Where did they roll the barrels?", "o": ["onto the deck", "into the sea", "up a tree"], "ev": ["deck"]},
+    {"t": "A c-ar-t f-r-o-m a f-ar-m c-a_e-m w-i-th s-a-ck-s o-f w-oo-l t-o s-e-ll.", "pic": "🐑", "type": "Retrieval", "q": "What was in the sacks?", "o": ["wool", "cats", "cakes"], "ev": ["wool"]},
+    {"t": "A c-a-b-i-n b-oy w-a_e-v-d a-s th-e b-oa-t-s s-ai-l-ed a-w-ay.", "pic": "👋", "type": "Yes or no", "q": "Did the cabin boy wave?", "o": ["✅ yes", "❌ no"], "ev": ["waved"], "a": 0}]},
+  {"id": "ES-MON-4b", "title": "The market", "bonus": "2026-11-26", "focus": ["ck", "ow", "ar", "ea", "oy"], "newG": "oy", "s": [
+    {"t": "K-i-t a-n-d h-er d-a-d w-e-n-t t-o th-e b-u-s-y m-ar-k-e-t.", "pic": "🛒", "type": "Retrieval", "q": "Who went with Kit?", "o": ["her dad", "the queen", "a cat"], "ev": ["dad"]},
+    {"t": "Th-e s-t-a-ll-s h-a-d b-r-ea-d, m-ea-t a-n-d j-ar-s o-f h-o-n-ey.", "pic": "🍯", "type": "Retrieval", "q": "What was in the jars?", "o": ["honey", "fish", "sand"], "ev": ["honey"]},
+    {"t": "A m-a-n w-i-th a b-r-ow-n c-ow s-o-l-d m-i-l-k f-r-o-m a b-u-ck-e-t.", "pic": "🐄", "type": "Retrieval", "q": "What did the man sell?", "o": ["milk", "ribbons", "bread"], "ev": ["milk"]},
+    {"t": "D-a-d g-o-t K-i-t a l-i-tt-le w-oo-d-e-n t-oy.", "pic": "🎁", "type": "Retrieval", "q": "What did Dad get Kit?", "o": ["a little wooden toy", "a ribbon", "a hat"], "ev": ["toy"]},
+    {"t": "K-i-t h-e-l-d i-t t-igh-t a-n-d j-u-m-p-ed f-or j-oy.", "pic": "😀", "type": "Inference", "q": "How did Kit feel?", "o": ["very happy", "sad", "scared"], "ev": ["joy"]}]},
+  {"id": "ES-MON-5a", "title": "Music", "bonus": "2026-11-27", "focus": ["i_e", "ur", "er", "ear", "ir"], "newG": "ir", "s": [
+    {"t": "Th-e qu-ee-n l-o-ve-d m-u-s-i-c a-n-d l-i_e-k-d t-o h-ear i-t a-ll d-ay.", "pic": "🎵", "type": "Retrieval", "q": "What did the queen love?", "o": ["music", "swimming", "football"], "ev": ["music"]},
+    {"t": "Sh-e c-ou-l-d p-l-ay a b-o-x w-i-th k-ey-s, l-i_e-k a s-m-a-ll p-i-a-n-o.", "pic": "🎹", "type": "Retrieval", "q": "What could she play?", "o": ["a box with keys", "a drum", "a guitar"], "ev": ["keys"]},
+    {"t": "A-t f-ea-s-t-s, p-l-ay-er-s p-l-ay-ed p-i_e-p-s a-n-d d-r-u-m-s.", "pic": "🥁", "type": "Retrieval", "q": "What did the players play?", "o": ["pipes and drums", "pianos", "trumpets"], "ev": ["pipes", "drums"]},
+    {"t": "Th-e g-ir-l-s a-n-d b-oy-s t-ur-n-ed a-n-d t-w-ir-l-ed r-ou-n-d.", "pic": "💃", "type": "Retrieval", "q": "What did the girls and boys do?", "o": ["turned and twirled", "sat still", "went to sleep"], "ev": ["twirled"]},
+    {"t": "Th-e qu-ee-n w-a-s a b-e-tt-er d-a-n-c-er th-a-n a-ll o-f th-e-m, y-ear a-f-t-er y-ear.", "pic": "👸", "type": "Yes or no", "q": "Was the queen good at dancing?", "o": ["✅ yes", "❌ no"], "ev": ["better", "dancer"], "a": 0}]},
+  {"id": "ES-MON-5b", "title": "A Tudor house", "bonus": "2026-11-27", "focus": ["i_e", "ur", "er", "ear", "ir"], "newG": "ir", "s": [
+    {"t": "M-a-n-y T-u-d-or h-ou-s-e-s h-a-d b-l-a-ck b-ea-m-s a-n-d wh-i_e-t w-a-ll-s.", "pic": "🏠", "type": "Retrieval", "q": "What colour were the beams?", "o": ["black", "green", "pink"], "ev": ["black"]},
+    {"t": "Th-e w-a-ll-s w-ere m-a_e-d f-r-o-m s-t-i-ck-s a-n-d d-ir-t-y m-u-d.", "pic": "🌳", "type": "Retrieval", "q": "What were the walls made from?", "o": ["sticks and mud", "glass", "metal"], "ev": ["sticks", "mud"]},
+    {"t": "Th-e r-oo-f w-a-s th-i-ck s-t-r-aw t-o k-ee-p th-e h-ou-se d-r-y i-n w-i-n-t-er.", "pic": "🌾", "type": "Retrieval", "q": "What was the roof made of?", "o": ["thick straw", "glass", "paper"], "ev": ["straw"]},
+    {"t": "R-i-ch p-eo-p-le h-a-d f-i_e-n g-l-a-ss w-i-n-d-ow-s a-n-d f-ur-n-i-t-ure.", "pic": "💰", "type": "Yes or no", "q": "Did rich people have glass windows?", "o": ["✅ yes", "❌ no"], "ev": ["glass"], "a": 0},
+    {"t": "P-oor p-eo-p-le h-a-d w-oo-d-e-n sh-u-tt-er-s a-n-d c-ur-t-ai-n-s i-n-s-t-ea-d.", "pic": "🏠", "type": "Inference", "q": "Why did poor people not have glass?", "o": ["Glass cost a lot of money.", "They did not like light.", "Glass was green."], "ev": ["poor", "instead"]}]}
 ];
 
 // Extra question sets on the same text: [Think deeper, Challenge]. order = events in the right order.
@@ -1054,7 +1046,7 @@ var MORE = {
     { type: 'Summarise', q: 'Which sentence best sums up the passage?', o: ['Bristol worked hard to welcome the queen.', 'The queen did not like Bristol.', 'Bristol built a new castle.'] }
   ]],
   // earlier stage passages: tap the word, picture questions, yes or no, order with pictures
-  'MAH-OMS-1': [[
+  'ES-OMS-1': [[
     { type: 'Find the word', q: "Tap the word 'crab'.", tap: ['crab'] },
     { type: 'Retrieval', q: 'What is on the rock?', o: ['🦀 a crab', '🐟 a fish', '⛵ a boat'], ev: ['crab', 'rock'] },
     { type: 'Yes or no', q: 'Is the sail red?', o: ['✅ yes', '❌ no'], ev: ['red'] },
@@ -1065,7 +1057,7 @@ var MORE = {
     { type: 'Retrieval', q: 'Where do fish swim?', o: ['🌊 in the sea', '🌳 in a tree', '🏠 in a house'], ev: ['sea'] },
     { type: 'Yes or no', q: 'Is the sea deep?', o: ['✅ yes', '❌ no'], ev: ['deep'] }
   ]],
-  'MAH-OMS-2': [[
+  'ES-OMS-2': [[
     { type: 'Find the word', q: "Tap the word 'pool'.", tap: ['pool'] },
     { type: 'Retrieval', q: 'What is pink?', o: ['⭐ the starfish', '🦀 the crab', '🐚 the shell'], ev: ['starfish', 'pink'] },
     { type: 'Yes or no', q: 'Is the tide in?', o: ['✅ yes', '❌ no'], a: 1, ev: ['out'] },
@@ -1076,7 +1068,7 @@ var MORE = {
     { type: 'Retrieval', q: 'Where is the shell?', o: ['👣 by my foot', '🌳 up a tree', '☁️ in the sky'], ev: ['foot'] },
     { type: 'Yes or no', q: 'Does the crab hide?', o: ['✅ yes', '❌ no'], ev: ['hides'] }
   ]],
-  'MAH-OMS-3': [[
+  'ES-OMS-3': [[
     { type: 'Find the word', q: "Tap the word 'bird'.", tap: ['bird'] },
     { type: 'Retrieval', q: 'What colour are the clouds?', o: ['⚪ white', '🖤 black', '💚 green'], ev: ['white'] },
     { type: 'Yes or no', q: 'Does the bird fly high?', o: ['✅ yes', '❌ no'], ev: ['high'] },
@@ -1087,7 +1079,7 @@ var MORE = {
     { type: 'Retrieval', q: 'Where does the rain fall?', o: ['🏘️ on the town', '🌙 on the moon', '🚢 on a ship'], ev: ['town'] },
     { type: 'Yes or no', q: 'Do I look down?', o: ['✅ yes', '❌ no'], a: 1, ev: ['up'] }
   ]],
-  'MAH-OMS-4': [[
+  'ES-OMS-4': [[
     { type: 'Find the word', q: "Tap the word 'night'.", tap: ['night'] },
     { type: 'Retrieval', q: 'Who lives at the top?', o: ['👨 a man', '🐶 a dog', '🐦 a bird'], ev: ['man'] },
     { type: 'Yes or no', q: 'Is the light bright?', o: ['✅ yes', '❌ no'], ev: ['bright'] },
@@ -1098,7 +1090,7 @@ var MORE = {
     { type: 'Retrieval', q: 'What can the man hear?', o: ['🌊 the sea', '🎵 music', '🐶 a dog'], ev: ['sea'] },
     { type: 'Yes or no', q: 'Do ships go near the rocks?', o: ['✅ yes', '❌ no'], a: 1, ev: ['away'] }
   ]],
-  'MAH-OMS-5': [[
+  'ES-OMS-5': [[
     { type: 'Find the word', q: "Tap the word 'moon'.", tap: ['moon'] },
     { type: 'Retrieval', q: 'What does Grandad have?', o: ['☕ a cup of tea', '🍦 an ice cream', '🍕 a pizza'], ev: ['tea'] },
     { type: 'Yes or no', q: 'Does the sky turn orange?', o: ['✅ yes', '❌ no'], ev: ['orange'] },
@@ -1109,7 +1101,7 @@ var MORE = {
     { type: 'Retrieval', q: 'Where do we sit?', o: ['🏖️ on the sand', '🌊 in the sea', '🚗 in a car'], ev: ['sand'] },
     { type: 'Yes or no', q: 'Does the sun go up?', o: ['✅ yes', '❌ no'], a: 1, ev: ['down'] }
   ]],
-  'MAH-OMS-6': [[
+  'ES-OMS-6': [[
     { type: 'Find the word', q: "Tap the word 'boat'.", tap: ['boat'] },
     { type: 'Retrieval', q: 'What colour is the sail?', o: ['💙 blue', '❤️ red', '💛 yellow'], ev: ['blue'] },
     { type: 'Yes or no', q: 'Is Finn happy?', o: ['✅ yes', '❌ no'], ev: ['happy'] },
@@ -1120,7 +1112,7 @@ var MORE = {
     { type: 'Retrieval', q: 'What does the boat do on the water?', o: ['🌊 it floats', '🔥 it burns', '🏃 it runs'], ev: ['floats'] },
     { type: 'Yes or no', q: 'Is Finn sad?', o: ['✅ yes', '❌ no'], a: 1, ev: ['happy'] }
   ]],
-  'MAH-MON-1': [[
+  'ES-MON-1': [[
     { type: 'Find the word', q: "Tap the word 'king'.", tap: ['king'] },
     { type: 'Retrieval', q: 'What is gold?', o: ['👑 the crown', '👸 the queen', '💺 the throne'], ev: ['crown', 'gold'] },
     { type: 'Yes or no', q: 'Does the king sit on a throne?', o: ['✅ yes', '❌ no'], ev: ['throne'] },
@@ -1131,39 +1123,9 @@ var MORE = {
     { type: 'Retrieval', q: 'Who is next to the king?', o: ['👸 a queen', '🐶 a dog', '👨‍🍳 a cook'], ev: ['queen'] },
     { type: 'Yes or no', q: 'Is the crown green?', o: ['✅ yes', '❌ no'], a: 1, ev: ['gold'] }
   ]],
-  'MAH-MON-2': [[
-    { type: 'Find the word', q: "Tap the word 'palace'.", tap: ['palace'] },
-    { type: 'Retrieval', q: 'Where does the king live?', o: ['🏰 in a palace', '⛺ in a tent', '🏠 in a small house'], ev: ['palace'] },
-    { type: 'Yes or no', q: 'Is the palace small?', o: ['✅ yes', '❌ no'], a: 1, ev: ['big'] },
-    { type: 'Find the word', q: "Tap the word 'food'.", tap: ['food'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['🏰 The king lives in a palace.', '🚪 It has a long hall.', '🍗 We see a feast.'] },
-    { type: 'Find the word', q: "Tap the word 'hall'.", tap: ['hall'] },
-    { type: 'Retrieval', q: 'What do we see?', o: ['🍗 a feast', '🚲 a bike', '📺 a TV'], ev: ['feast'] },
-    { type: 'Yes or no', q: 'Is the food good?', o: ['✅ yes', '❌ no'], ev: ['good'] }
-  ]],
-  'MAH-MON-3': [[
-    { type: 'Find the word', q: "Tap the word 'horse'.", tap: ['horse'] },
-    { type: 'Retrieval', q: 'What colour is her coat?', o: ['❤️ red', '💙 blue', '💚 green'], ev: ['red'] },
-    { type: 'Yes or no', q: 'Do people clap?', o: ['✅ yes', '❌ no'], ev: ['clap'] },
-    { type: 'Find the word', q: "Tap the word 'dress'.", tap: ['dress'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['🐴 The queen rides a horse.', '👏 People clap and cheer.', '😊 The queen smiles.'] },
-    { type: 'Find the word', q: "Tap the word 'coat'.", tap: ['coat'] },
-    { type: 'Retrieval', q: 'What does the queen ride?', o: ['🐴 a horse', '🚌 a bus', '🚲 a bike'], ev: ['horse'] },
-    { type: 'Yes or no', q: 'Is the dress short?', o: ['✅ yes', '❌ no'], a: 1, ev: ['long'] }
-  ]],
-  'MAH-MON-4': [[
-    { type: 'Find the word', q: "Tap the word 'gates'.", tap: ['gates'] },
-    { type: 'Retrieval', q: 'What do they put on the road?', o: ['🏖️ sand', '💧 water', '🍰 cake'], ev: ['sand'] },
-    { type: 'Yes or no', q: 'Is the cross gold?', o: ['✅ yes', '❌ no'], ev: ['gold'] },
-    { type: 'Find the word', q: "Tap the word 'gift'.", tap: ['gift'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['👸 The queen will come.', '🎨 Men paint the gates.', '🎁 Bristol gives her a gift.'] },
-    { type: 'Find the word', q: "Tap the word 'road'.", tap: ['road'] },
-    { type: 'Retrieval', q: 'What does Bristol give her?', o: ['🎁 a gift', '🐶 a dog', '🚗 a car'], ev: ['gift'] },
-    { type: 'Yes or no', q: 'Do men paint the gates?', o: ['✅ yes', '❌ no'], ev: ['paint'] }
-  ]],
+  "ES-MON-2": [[{"type": "Sequence", "q": "Put them in order.", "order": ["🏰 Henry had a big palace.", "💃 He liked to play games.", "🌧️ He stayed inside in the rain."]}, {"type": "Find the word", "q": "Tap the word 'rain'.", "tap": ["rain"]}, {"type": "Find the word", "q": "Tap the word 'play'.", "tap": ["play"]}, {"type": "Inference", "q": "Why did the king stay inside?", "o": ["It was raining.", "He was cross.", "It was hot."], "ev": ["rain"]}], [{"type": "True or false", "q": "True or false: the dishes were empty.", "o": ["True", "False"], "ev": ["full"], "a": 1, "why": "The dishes were full."}, {"type": "Inference", "q": "Was King Henry rich or poor?", "o": ["rich", "poor"], "ev": ["palace", "feast"], "a": 0, "why": "He had a big palace and feasts."}, {"type": "Find the word", "q": "Tap the word 'dishes'.", "tap": ["dishes"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["King Henry and his palace", "A day at the beach", "The little tent"]}]],
+  "ES-MON-3": [[{"type": "Sequence", "q": "Put them in order.", "order": ["👗 She wore a green gown.", "📚 She liked to read books.", "🐴 She rode under the skies."]}, {"type": "Find the word", "q": "Tap the word 'coat'.", "tap": ["coat"]}, {"type": "Find the word", "q": "Tap the word 'skies'.", "tap": ["skies"]}, {"type": "Inference", "q": "Was the queen rich?", "o": ["yes", "no"], "ev": ["gown", "coat"], "a": 0, "why": "She wore a fine gown and coat."}], [{"type": "Vocabulary", "q": "What does 'ruled' mean here?", "o": ["was in charge of the country", "drew a line", "went to sleep"], "ev": ["ruled"]}, {"type": "True or false", "q": "True or false: she was queen for a short time.", "o": ["True", "False"], "ev": ["long", "time"], "a": 1, "why": "She ruled for a long time."}, {"type": "Find the word", "q": "Tap the word 'shouted'.", "tap": ["shouted"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["Queen Elizabeth", "A trip to the shop", "Tom the cook"]}]],
+  "ES-MON-4": [[{"type": "Sequence", "q": "Put them in order.", "order": ["🎨 Men painted the gates.", "🛣️ They packed sand on the roads.", "🎵 Boys and girls learnt songs."]}, {"type": "Find the word", "q": "Tap the word 'joy'.", "tap": ["joy"]}, {"type": "Find the word", "q": "Tap the word 'black'.", "tap": ["black"]}, {"type": "Inference", "q": "Why did Bristol get ready?", "o": ["The queen was coming.", "It was raining.", "The king was cross."], "ev": ["queen", "coming"]}], [{"type": "Vocabulary", "q": "What does 'joy' mean?", "o": ["great happiness", "fear", "sleep"], "ev": ["joy"]}, {"type": "True or false", "q": "True or false: the town was quiet.", "o": ["True", "False"], "ev": ["busy"], "a": 1, "why": "The town was busy."}, {"type": "Find the word", "q": "Tap the word 'crowds'.", "tap": ["crowds"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["Bristol gets ready", "A day at the farm", "The lost crown"]}]],
   'MON-5': [[
     { type: 'Sequence', q: 'Put these in the order they happened.', order: ['The queen rode towards the gates.', 'A boy gave a speech.', 'The queen thanked the people.'] },
     { type: 'Retrieval', q: 'What was sewn onto the gown?', o: ['pearls', 'feathers', 'shells'], ev: ['pearls'] },
@@ -1359,18 +1321,8 @@ var MORE = {
     { type: 'Author choice', q: "Why does the author explain what 'wattle' and 'daub' mean?", o: ['because readers may not know these old words', 'because they are names of people', 'to make the passage shorter'], ev: ['wattle', 'daub'] },
     { type: 'Summarise', q: 'Which is the best title for this passage?', o: ['How Tudor houses were built', 'A day at a Tudor school', 'The queen visits Bristol'] }
   ]],
-  'MAH-MON-5': [[
-    { type: 'Find the word', q: "Tap the word 'queen'.", tap: ['queen'] },
-    { type: 'Retrieval', q: 'What does the crowd do?', o: ['🎉 cheers', '😴 sleeps', '😢 cries'], ev: ['cheers'] },
-    { type: 'Yes or no', q: 'Does a boy say hello?', o: ['✅ yes', '❌ no'], ev: ['boy'] },
-    { type: 'Find the word', q: "Tap the word 'gown'.", tap: ['gown'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['👸 The queen rides to Bristol.', '🎉 A big crowd cheers.', '👦 A boy says hello.'] },
-    { type: 'Find the word', q: "Tap the word 'glad'.", tap: ['glad'] },
-    { type: 'Retrieval', q: 'Where does the queen ride to?', o: ['Bristol', 'London', 'the beach'], ev: ['bristol'] },
-    { type: 'Yes or no', q: 'Is the queen cross?', o: ['✅ yes', '❌ no'], a: 1, ev: ['glad'] }
-  ]],
-  'MAH-OMS-5a': [[
+  "ES-MON-5": [[{"type": "Sequence", "q": "Put them in order.", "order": ["👸 The queen rode into Bristol.", "👗 She wore a purple gown.", "👦 A boy and a girl gave a speech."]}, {"type": "Find the word", "q": "Tap the word 'girl'.", "tap": ["girl"]}, {"type": "Find the word", "q": "Tap the word 'purple'.", "tap": ["purple"]}, {"type": "Inference", "q": "How do you think the boy and girl felt?", "o": ["nervous but proud", "bored", "sleepy"], "ev": ["stepped"]}], [{"type": "Vocabulary", "q": "What is a 'speech'?", "o": ["a talk to lots of people", "a song", "a letter"], "ev": ["speech"]}, {"type": "True or false", "q": "True or false: the crowds were quiet.", "o": ["True", "False"], "ev": ["louder", "cheered"], "a": 1, "why": "They cheered louder and louder."}, {"type": "Find the word", "q": "Tap the word 'white'.", "tap": ["white"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["The queen comes to Bristol", "A day at school", "A trip to the farm"]}]],
+  'ES-OMS-5a': [[
     { type: 'Find the word', q: "Tap the word 'gull'.", tap: ['gull'] },
     { type: 'Retrieval', q: 'What does the gull eat?', o: ['🐟 fish', '🍕 pizza', '🍌 bananas'], ev: ['fish'] },
     { type: 'Yes or no', q: 'Is the beak yellow?', o: ['✅ yes', '❌ no'], ev: ['yellow'] },
@@ -1381,7 +1333,7 @@ var MORE = {
     { type: 'Retrieval', q: 'What can the gull do?', o: ['🐦 fly', '📖 read', '🚗 drive'], ev: ['fly'] },
     { type: 'Yes or no', q: 'Is the gull green?', o: ['✅ yes', '❌ no'], a: 1, ev: ['white'] }
   ]],
-  'MAH-OMS-5b': [[
+  'ES-OMS-5b': [[
     { type: 'Find the word', q: "Tap the word 'kite'.", tap: ['kite'] },
     { type: 'Retrieval', q: 'Who has a kite?', o: ['👧 Maya', '👴 Grandad', '👑 a king'], ev: ['maya'] },
     { type: 'Yes or no', q: 'Does the kite go down?', o: ['✅ yes', '❌ no'], a: 1, ev: ['up'] },
@@ -1392,7 +1344,7 @@ var MORE = {
     { type: 'Retrieval', q: 'How does Maya feel?', o: ['😀 happy', '😢 sad', '😠 cross'], ev: ['happy'] },
     { type: 'Yes or no', q: 'Is the wind strong?', o: ['✅ yes', '❌ no'], ev: ['strong'] }
   ]],
-  'MAH-OMS-6a': [[
+  'ES-OMS-6a': [[
     { type: 'Find the word', q: "Tap the word 'rain'.", tap: ['rain'] },
     { type: 'Retrieval', q: 'Where do rivers run to?', o: ['🌊 the sea', '🌙 the moon', '🌳 a tree'], ev: ['sea'] },
     { type: 'Yes or no', q: 'Is the sea salty?', o: ['✅ yes', '❌ no'], ev: ['salty'] },
@@ -1403,7 +1355,7 @@ var MORE = {
     { type: 'Retrieval', q: 'What falls on the rocks?', o: ['🌧️ rain', '❄️ snow', '🍎 apples'], ev: ['rain'] },
     { type: 'Yes or no', q: 'Is the sea sweet?', o: ['✅ yes', '❌ no'], a: 1, ev: ['salty'] }
   ]],
-  'MAH-OMS-6b': [[
+  'ES-OMS-6b': [[
     { type: 'Find the word', q: "Tap the word 'moon'.", tap: ['moon'] },
     { type: 'Retrieval', q: 'Where do they go?', o: ['🌊 to the bay', '🏫 to school', '🛒 to the shop'], ev: ['bay'] },
     { type: 'Yes or no', q: 'Is it day?', o: ['✅ yes', '❌ no'], a: 1, ev: ['night'] },
@@ -1414,7 +1366,7 @@ var MORE = {
     { type: 'Retrieval', q: 'What is silver?', o: ['🌙 the moon', '☀️ the sun', '🌳 a tree'], ev: ['moon'] },
     { type: 'Yes or no', q: 'Are the stars bright?', o: ['✅ yes', '❌ no'], ev: ['bright'] }
   ]],
-  'MAH-MON-1a': [[
+  'ES-MON-1a': [[
     { type: 'Find the word', q: "Tap the word 'crown'.", tap: ['crown'] },
     { type: 'Retrieval', q: 'What colour is the crown?', o: ['💛 gold', '❤️ red', '💙 blue'], ev: ['gold'] },
     { type: 'Yes or no', q: 'Is the crown light?', o: ['✅ yes', '❌ no'], a: 1, ev: ['heavy'] },
@@ -1425,7 +1377,7 @@ var MORE = {
     { type: 'Retrieval', q: 'Who has a crown?', o: ['🤴 the king', '👦 a boy', '🐱 a cat'], ev: ['king'] },
     { type: 'Yes or no', q: 'Does the crown have jewels?', o: ['✅ yes', '❌ no'], ev: ['jewels'] }
   ]],
-  'MAH-MON-1b': [[
+  'ES-MON-1b': [[
     { type: 'Find the word', q: "Tap the word 'card'.", tap: ['card'] },
     { type: 'Retrieval', q: 'Who makes a card?', o: ['👧 Amira', '🤴 the king', '👵 Grandma'], ev: ['amira'] },
     { type: 'Yes or no', q: 'Does the king smile?', o: ['✅ yes', '❌ no'], ev: ['smiles'] },
@@ -1436,94 +1388,14 @@ var MORE = {
     { type: 'Retrieval', q: 'What is on the card?', o: ['👑 a crown', '⭐ a star', '🌳 a tree'], ev: ['crown'] },
     { type: 'Yes or no', q: 'Does Amira keep the card?', o: ['✅ yes', '❌ no'], a: 1, ev: ['gives'] }
   ]],
-  'MAH-MON-2a': [[
-    { type: 'Find the word', q: "Tap the word 'hot'.", tap: ['hot'] },
-    { type: 'Retrieval', q: 'What cooks on the fire?', o: ['🍖 meat', '🍦 ice cream', '🍌 bananas'], ev: ['meat'] },
-    { type: 'Yes or no', q: 'Is the kitchen small?', o: ['✅ yes', '❌ no'], a: 1, ev: ['big'] },
-    { type: 'Find the word', q: "Tap the word 'cooks'.", tap: ['cooks'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['🔥 It is very hot.', '🍖 Meat cooks on the fire.', '🍗 The king has a big feast.'] },
-    { type: 'Find the word', q: "Tap the word 'food'.", tap: ['food'] },
-    { type: 'Retrieval', q: 'Who has a feast?', o: ['🤴 the king', '👦 a boy', '🐶 a dog'], ev: ['king'] },
-    { type: 'Yes or no', q: 'Is it cold in the kitchen?', o: ['✅ yes', '❌ no'], a: 1, ev: ['hot'] }
-  ]],
-  'MAH-MON-2b': [[
-    { type: 'Find the word', q: "Tap the word 'logs'.", tap: ['logs'] },
-    { type: 'Retrieval', q: 'Who carries logs?', o: ['👦 Tom', '🤴 the king', '🐶 a dog'], ev: ['tom'] },
-    { type: 'Yes or no', q: 'Does Tom get a pie?', o: ['✅ yes', '❌ no'], ev: ['pie'] },
-    { type: 'Find the word', q: "Tap the word 'fire'.", tap: ['fire'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['🌳 Tom carries logs.', '🥧 The cooks make pies.', '😋 The cook gives Tom a pie.'] },
-    { type: 'Find the word', q: "Tap the word 'hungry'.", tap: ['hungry'] },
-    { type: 'Retrieval', q: 'What do the cooks make?', o: ['🥧 pies', '🍰 cakes', '🍞 bread'], ev: ['pies'] },
-    { type: 'Yes or no', q: 'Is Tom full up?', o: ['✅ yes', '❌ no'], a: 1, ev: ['hungry'] }
-  ]],
-  'MAH-MON-3a': [[
-    { type: 'Find the word', q: "Tap the word 'house'.", tap: ['house'] },
-    { type: 'Retrieval', q: 'Who builds a house?', o: ['👩 Bess', '🤴 the king', '👦 Tom'], ev: ['bess'] },
-    { type: 'Yes or no', q: 'Is Bess rich?', o: ['✅ yes', '❌ no'], ev: ['rich'] },
-    { type: 'Find the word', q: "Tap the word 'windows'.", tap: ['windows'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['💰 Bess is rich.', '🏠 She builds a big house.', '😀 She is very proud.'] },
-    { type: 'Find the word', q: "Tap the word 'proud'.", tap: ['proud'] },
-    { type: 'Retrieval', q: 'What are big?', o: ['the windows', 'the dogs', 'the cups'], ev: ['windows'] },
-    { type: 'Yes or no', q: 'Does Bess build a ship?', o: ['✅ yes', '❌ no'], a: 1, ev: ['house'] }
-  ]],
-  'MAH-MON-3b': [[
-    { type: 'Find the word', q: "Tap the word 'school'.", tap: ['school'] },
-    { type: 'Retrieval', q: 'Who goes to school?', o: ['👦 Will', '👧 Maya', '🤴 the king'], ev: ['will'] },
-    { type: 'Yes or no', q: 'Is it hot?', o: ['✅ yes', '❌ no'], a: 1, ev: ['cold'] },
-    { type: 'Find the word', q: "Tap the word 'book'.", tap: ['book'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['🏫 Will goes to school.', '📖 The boys read aloud.', '🏠 Will runs home.'] },
-    { type: 'Find the word', q: "Tap the word 'dark'.", tap: ['dark'] },
-    { type: 'Retrieval', q: 'What is the book made of?', o: ['🌳 wood', '🍞 bread', '❄️ ice'], ev: ['wood'] },
-    { type: 'Yes or no', q: 'Does Will walk home slowly?', o: ['✅ yes', '❌ no'], a: 1, ev: ['runs'] }
-  ]],
-  'MAH-MON-4a': [[
-    { type: 'Find the word', q: "Tap the word 'ships'.", tap: ['ships'] },
-    { type: 'Retrieval', q: 'What squawks?', o: ['🐦 gulls', '🐶 dogs', '🐱 cats'], ev: ['gulls'] },
-    { type: 'Yes or no', q: 'Is it quiet?', o: ['✅ yes', '❌ no'], a: 1, ev: ['busy'] },
-    { type: 'Find the word', q: "Tap the word 'river'.", tap: ['river'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['⛵ The ships sail up the river.', '🛢️ Men roll barrels.', '🐦 Gulls squawk.'] },
-    { type: 'Find the word', q: "Tap the word 'busy'.", tap: ['busy'] },
-    { type: 'Retrieval', q: 'Which city has lots of ships?', o: ['Bristol', 'London', 'Paris'], ev: ['bristol'] },
-    { type: 'Yes or no', q: 'Do the ships sail?', o: ['✅ yes', '❌ no'], ev: ['sail'] }
-  ]],
-  'MAH-MON-4b': [[
-    { type: 'Find the word', q: "Tap the word 'market'.", tap: ['market'] },
-    { type: 'Retrieval', q: 'What colour is the apple?', o: ['❤️ red', '💙 blue', '🖤 black'], ev: ['red'] },
-    { type: 'Yes or no', q: 'Does the man sell ribbons?', o: ['✅ yes', '❌ no'], ev: ['ribbons'] },
-    { type: 'Find the word', q: "Tap the word 'bread'.", tap: ['bread'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['🛒 Kit goes to the market.', '🎀 A man sells ribbons.', '🍎 Dad gets Kit a red apple.'] },
-    { type: 'Find the word', q: "Tap the word 'cheese'.", tap: ['cheese'] },
-    { type: 'Retrieval', q: 'Who gets Kit an apple?', o: ['👨 Dad', '👸 the queen', '👵 Grandma'], ev: ['dad'] },
-    { type: 'Yes or no', q: 'Does Kit throw the apple away?', o: ['✅ yes', '❌ no'], a: 1, ev: ['eats'] }
-  ]],
-  'MAH-MON-5a': [[
-    { type: 'Find the word', q: "Tap the word 'music'.", tap: ['music'] },
-    { type: 'Retrieval', q: 'What do the men beat?', o: ['🥁 drums', '🍳 pans', '🐶 dogs'], ev: ['drums'] },
-    { type: 'Yes or no', q: 'Does the queen like music?', o: ['✅ yes', '❌ no'], ev: ['likes'] },
-    { type: 'Find the word', q: "Tap the word 'dances'.", tap: ['dances'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['🎵 The queen likes music.', '🥁 Men beat drums.', '💃 The queen dances.'] },
-    { type: 'Find the word', q: "Tap the word 'spins'.", tap: ['spins'] },
-    { type: 'Retrieval', q: 'Who likes music?', o: ['👸 the queen', '🐱 a cat', '👦 Tom'], ev: ['queen'] },
-    { type: 'Yes or no', q: 'Can she play?', o: ['✅ yes', '❌ no'], ev: ['play'] }
-  ]],
-  'MAH-MON-5b': [[
-    { type: 'Find the word', q: "Tap the word 'house'.", tap: ['house'] },
-    { type: 'Retrieval', q: 'What is the roof?', o: ['🌾 straw', '🍫 chocolate', '🧀 cheese'], ev: ['straw'] },
-    { type: 'Yes or no', q: 'Are the walls mud?', o: ['✅ yes', '❌ no'], ev: ['mud'] },
-    { type: 'Find the word', q: "Tap the word 'black'.", tap: ['black'] }
-  ], [
-    { type: 'Sequence', q: 'Put them in order.', order: ['🏠 This is a Tudor house.', '🌾 The roof is straw.', '🔥 It is warm inside.'] },
-    { type: 'Find the word', q: "Tap the word 'roof'.", tap: ['roof'] },
-    { type: 'Retrieval', q: 'What colour is the house?', o: ['🖤 black and white', '💙 blue', '💛 yellow'], ev: ['black', 'white'] },
-    { type: 'Yes or no', q: 'Is it cold inside?', o: ['✅ yes', '❌ no'], a: 1, ev: ['warm'] }
-  ]]
+  "ES-MON-2a": [[{"type": "Sequence", "q": "Put them in order.", "order": ["🍖 Cooks roasted meat and fish.", "🍞 Bakers made bread.", "🍽️ A boy washed the dishes."]}, {"type": "Find the word", "q": "Tap the word 'tray'.", "tap": ["tray"]}, {"type": "Find the word", "q": "Tap the word 'washed'.", "tap": ["washed"]}, {"type": "Inference", "q": "Why was the kitchen hot?", "o": ["There was a big fire.", "The sun was in it.", "It had no roof."], "ev": ["fire"]}], [{"type": "True or false", "q": "True or false: the kitchen was quiet.", "o": ["True", "False"], "ev": ["busy"], "a": 1, "why": "It was busy all day."}, {"type": "Find the word", "q": "Tap the word 'pail'.", "tap": ["pail"]}, {"type": "Vocabulary", "q": "What is a 'pail'?", "o": ["a bucket", "a plate", "a spoon"], "ev": ["pail"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["The busy palace kitchen", "A trip to the beach", "The king goes to bed"]}]],
+  "ES-MON-2b": [[{"type": "Sequence", "q": "Put them in order.", "order": ["🌑 Tom got up before daylight.", "🌳 He carried logs.", "🥧 Tom could stay and have a pie."]}, {"type": "Find the word", "q": "Tap the word 'daylight'.", "tap": ["daylight"]}, {"type": "Find the word", "q": "Tap the word 'rushed'.", "tap": ["rushed"]}, {"type": "Inference", "q": "What kind of boy was Tom?", "o": ["hard-working", "lazy", "cross"], "ev": ["carried", "complain"]}], [{"type": "Vocabulary", "q": "What does 'complain' mean?", "o": ["moan about something", "sing a song", "run fast"], "ev": ["complain"]}, {"type": "True or false", "q": "True or false: Tom carried logs in the rain.", "o": ["True", "False"], "ev": ["rain"], "a": 0, "why": "He carried logs in the rain."}, {"type": "Find the word", "q": "Tap the word 'stay'.", "tap": ["stay"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["Tom's long day in the kitchen", "Tom goes swimming", "The queen visits Tom"]}]],
+  "ES-MON-3a": [[{"type": "Sequence", "q": "Put them in order.", "order": ["🐑 Bess had goats and sheep.", "🏰 She built a house.", "😀 She felt very proud."]}, {"type": "Find the word", "q": "Tap the word 'goats'.", "tap": ["goats"]}, {"type": "Find the word", "q": "Tap the word 'roof'.", "tap": ["roof"]}, {"type": "Inference", "q": "Was Bess a powerful woman?", "o": ["yes", "no"], "ev": ["rich", "gold"], "a": 0, "why": "She was rich, with farms and gold."}], [{"type": "Vocabulary", "q": "What does 'proud' mean?", "o": ["very pleased with something you did", "very scared", "very sleepy"], "ev": ["proud"]}, {"type": "True or false", "q": "True or false: the house had one room.", "o": ["True", "False"], "ev": ["many", "rooms"], "a": 1, "why": "It had many rooms."}, {"type": "Find the word", "q": "Tap the word 'sheep'.", "tap": ["sheep"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["Bess and her huge house", "A trip to the sea", "The king and his dog"]}]],
+  "ES-MON-3b": [[{"type": "Sequence", "q": "Put them in order.", "order": ["🌑 Will walked to school.", "🏫 The boys sat on hard seats.", "🔔 The bell rang."]}, {"type": "Find the word", "q": "Tap the word 'coat'.", "tap": ["coat"]}, {"type": "Find the word", "q": "Tap the word 'pouch'.", "tap": ["pouch"]}, {"type": "Retrieval", "q": "How did the boys read?", "o": ["out loud", "in a whisper", "in their heads"], "ev": ["loud"]}], [{"type": "Vocabulary", "q": "What is a 'pouch'?", "o": ["a small bag", "a big box", "a hat"], "ev": ["pouch"]}, {"type": "True or false", "q": "True or false: the seats were soft.", "o": ["True", "False"], "ev": ["hard"], "a": 1, "why": "They were hard seats."}, {"type": "Find the word", "q": "Tap the word 'tried'.", "tap": ["tried"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["Will's Tudor school day", "Will goes to the beach", "The queen goes to school"]}]],
+  "ES-MON-4a": [[{"type": "Sequence", "q": "Put them in order.", "order": ["⛵ Ships sailed down the river.", "🛢️ Sailors rolled barrels.", "👋 A cabin boy waved."]}, {"type": "Find the word", "q": "Tap the word 'dock'.", "tap": ["dock"]}, {"type": "Find the word", "q": "Tap the word 'cart'.", "tap": ["cart"]}, {"type": "Inference", "q": "Why did they put wool on the ships?", "o": ["to sell it", "to keep warm", "to feed the gulls"], "ev": ["sell"]}], [{"type": "Vocabulary", "q": "What is a 'deck'?", "o": ["the floor of a ship", "a kind of cake", "a horse"], "ev": ["deck"]}, {"type": "True or false", "q": "True or false: Bristol was a quiet port.", "o": ["True", "False"], "ev": ["busy"], "a": 1, "why": "It was a busy port."}, {"type": "Find the word", "q": "Tap the word 'down'.", "tap": ["down"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["Busy ships in Bristol", "A quiet farm", "The queen sleeps"]}]],
+  "ES-MON-4b": [[{"type": "Sequence", "q": "Put them in order.", "order": ["🛒 Kit went to the market.", "🐄 A man sold milk.", "🎁 Dad got Kit a toy."]}, {"type": "Find the word", "q": "Tap the word 'toy'.", "tap": ["toy"]}, {"type": "Find the word", "q": "Tap the word 'bucket'.", "tap": ["bucket"]}, {"type": "Retrieval", "q": "What colour was the cow?", "o": ["brown", "green", "blue"], "ev": ["brown"]}], [{"type": "Vocabulary", "q": "What is a 'stall'?", "o": ["a table where things are sold", "a kind of fish", "a bed"], "ev": ["stalls"]}, {"type": "True or false", "q": "True or false: the market was quiet.", "o": ["True", "False"], "ev": ["busy"], "a": 1, "why": "It was a busy market."}, {"type": "Find the word", "q": "Tap the word 'jars'.", "tap": ["jars"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["Kit goes to the market", "Kit goes swimming", "The king eats an apple"]}]],
+  "ES-MON-5a": [[{"type": "Sequence", "q": "Put them in order.", "order": ["🎵 The queen loved music.", "🥁 Players played pipes and drums.", "💃 The girls and boys twirled."]}, {"type": "Find the word", "q": "Tap the word 'twirled'.", "tap": ["twirled"]}, {"type": "Find the word", "q": "Tap the word 'pipes'.", "tap": ["pipes"]}, {"type": "Inference", "q": "Were the feasts fun?", "o": ["yes", "no"], "ev": ["twirled", "drums"], "a": 0, "why": "There was music and dancing."}], [{"type": "Vocabulary", "q": "What does 'twirled' mean?", "o": ["spun round and round", "fell down", "ran away"], "ev": ["twirled"]}, {"type": "True or false", "q": "True or false: the queen did not like music.", "o": ["True", "False"], "ev": ["loved"], "a": 1, "why": "She loved music."}, {"type": "Find the word", "q": "Tap the word 'turned'.", "tap": ["turned"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["Tudor music and dancing", "The quiet library", "A day at the farm"]}]],
+  "ES-MON-5b": [[{"type": "Sequence", "q": "Put them in order.", "order": ["🏠 Tudor houses had black beams.", "🌾 The roof was thick straw.", "💰 Rich people had glass windows."]}, {"type": "Find the word", "q": "Tap the word 'dirty'.", "tap": ["dirty"]}, {"type": "Find the word", "q": "Tap the word 'furniture'.", "tap": ["furniture"]}, {"type": "Inference", "q": "Why was the straw roof thick?", "o": ["to keep the house dry", "to make it pretty", "to feed the horses"], "ev": ["dry"]}], [{"type": "Vocabulary", "q": "What are 'shutters'?", "o": ["wooden covers for windows", "doors for dogs", "roof tiles"], "ev": ["shutters"]}, {"type": "True or false", "q": "True or false: the walls were made from sticks and mud.", "o": ["True", "False"], "ev": ["sticks", "mud"], "a": 0, "why": "The walls were sticks and mud."}, {"type": "Find the word", "q": "Tap the word 'winter'.", "tap": ["winter"]}, {"type": "Summarise", "q": "Which is the best title?", "o": ["How Tudor houses were made", "A trip to the sea", "The queen dances"]}]]
 };
 
 /* ---------------- adults panel (press and hold the title, or tap it 5 times) ---------------- */
