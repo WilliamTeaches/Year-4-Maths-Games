@@ -122,6 +122,9 @@ main { max-width: 1040px; margin: 0 auto; padding: 16px 18px 40px; }
 #adults .card { background: #fff; border-radius: 18px; padding: 20px 22px; max-width: 760px; width: 100%; max-height: 92vh; overflow: auto; font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; font-size: 18px; }
 #adults h2 { margin: 0 0 8px; font-size: 24px; }
 #adults select, #adults button { font-size: 18px; padding: 8px 12px; border-radius: 10px; border: 2px solid var(--line); background: #fff; margin: 4px 6px 4px 0; }
+#pend { display: none; position: fixed; right: 10px; bottom: 10px; z-index: 5; background: #fff3c4; border: 2px solid #e6c84f; color: #5c4a00; border-radius: 999px; padding: 4px 14px; font: 16px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+.send.ok { color: var(--ok); font-weight: 600; }
+.send.wait { color: var(--warn); font-weight: 600; }
 #adults .log { border-top: 1px solid var(--line); padding: 8px 0; }
 @media (max-width: 800px) {
   .sent { font-size: 40px; } .sayline { font-size: 32px; } .cardx { font-size: 28px; } .slot.who { min-width: 240px; } .slot.doing { min-width: 180px; }
@@ -139,11 +142,16 @@ main { max-width: 1040px; margin: 0 auto; padding: 16px 18px 40px; }
 </header>
 <main id="app"></main>
 <div id="adults"><div class="card" id="adultCard"></div></div>
+<div id="pend"></div>
 
 <script>
 /* Step session: the adult-led 5 minutes for the full stops small steps ladder.
-   One learner at a time with an adult. Nothing is sent anywhere and no names are used: the summary at the end is copied
-   onto the paper record sheet. The page goes by today's date (the same weekly calendar as Build it), not by saved progress. */
+   One learner at a time with an adult. No names are used, only the picture names.
+   When FORM is set, each summary is sent as ONE row to the class's "Y3 Gap closing - Writing" Google Form (the form
+   Build it uses), so it lands in the Sheet by itself: Gap ID = picture code + "-STEP" + step number (for example RHI-STEP1),
+   Activity = "Step session: " + the session name, First try = the 30 second check (Correct or Incorrect).
+   When FORM is null the page sends nothing and the summary is copied onto the paper record sheet.
+   The page goes by today's date (the same weekly calendar as Build it), not by saved progress. */
 (function () {
 'use strict';
 var IMG = { who: 'data:image/png;base64,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', doing: 'data:image/png;base64,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' };
@@ -152,9 +160,11 @@ var ICON_SVG = { xeme: '<svg viewBox="6 30 92 62" width="1.45em" height="0.98em"
 ICON_SVG.emu = '<svg viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true"><path d="M47 66 L45 90 M60 67 L62 90" stroke="#6b5a48" stroke-width="4.5" stroke-linecap="round" fill="none"/><path d="M45 90 L36 93 M45 90 L50 94 M62 90 L54 93 M62 90 L68 94" stroke="#6b5a48" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M30 52 C30 38 44 32 58 34 C74 36 86 46 84 58 C83 66 72 71 58 70 C42 70 30 64 30 52 Z" fill="#7a6552"/><path d="M80 48 L92 58 L82 60 L90 68 L78 66 Z" fill="#5f4d3d"/><path d="M44 44 l4 8 M54 42 l4 9 M64 44 l4 9 M50 54 l4 8 M61 55 l4 8" stroke="#5f4d3d" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M37 48 C32 38 31 28 29 17" stroke="#6f93ab" stroke-width="8" stroke-linecap="round" fill="none"/><circle cx="28" cy="13" r="7.5" fill="#3d3a3a"/><path d="M22 12 L10 15 L22 17 Z" fill="#2b2826"/><circle cx="26" cy="11" r="2.2" fill="#e8742c"/><circle cx="26" cy="11" r="1" fill="#1f2430"/></svg>';
 ICON_SVG.aardvark = '<svg viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true"><path d="M74 58 C88 58 94 66 97 76 C90 72 82 70 74 70 Z" fill="#a8846f"/><path d="M36 68 L34 86 L41 86 L42 70 Z M50 70 L49 86 L56 86 L56 70 Z M64 70 L64 86 L71 86 L70 68 Z M76 66 L78 86 L85 86 L82 64 Z" fill="#96735f"/><path d="M30 56 C30 42 44 36 58 38 C72 40 82 48 82 60 C82 70 70 74 56 74 C42 74 30 68 30 56 Z" fill="#b8927b"/><path d="M38 44 C30 40 24 42 20 48 C14 54 8 62 3 68 C2 71 4 73 7 72 C16 68 26 64 36 62 Z" fill="#b8927b"/><path d="M26 40 C22 26 24 14 28 10 C33 16 35 28 34 42 Z" fill="#b8927b"/><path d="M28 36 C26 27 27 19 29 15 C31 20 32 28 31 37 Z" fill="#e3b9a6"/><path d="M35 40 C34 26 38 15 43 12 C46 20 45 31 42 42 Z" fill="#a8846f"/><circle cx="24" cy="50" r="2.6" fill="#1f2430"/><ellipse cx="5" cy="69.500" rx="2.200" ry="1.800" fill="#5a4034"/></svg>';
 var CLASS = 'Perretts';
+/* the same settings as FORM in build-it.html (the Setup tab, cell A3) */
+var FORM = {"url": "https://docs.google.com/forms/d/e/1FAIpQLSfd2wpFTiHddxcu52pI0uvcwN118pmC2-yI0fqivDzBekSx3g/formResponse", "fields": {"learner": "entry.1112919729", "session": "entry.226887823", "gap": "entry.1424147765", "activity": "entry.1685389078", "item": "entry.233205300", "first": "entry.107399390", "answer": "entry.562622395", "attempts": "entry.1085294058", "time": "entry.914953259"}};
 var LEARNERS = [
-  { name: 'Rhino', icon: '🦏' }, { name: 'Kangaroo', icon: '🦘' }, { name: 'F1 car', icon: '🏎️' },
-  { name: 'Manta ray', icon: 'svg:manta' }, { name: 'Monkey', icon: '🐒', early: true }, { name: 'Xeme', icon: 'svg:xeme' }
+  { name: 'Rhino', code: 'RHI', icon: '🦏' }, { name: 'Kangaroo', code: 'KAN', icon: '🦘' }, { name: 'F1 car', code: 'CAR', icon: '🏎️' },
+  { name: 'Manta ray', code: 'RAY', icon: 'svg:manta' }, { name: 'Monkey', code: 'MKY', icon: '🐒', early: true }, { name: 'Xeme', code: 'XEM', icon: 'svg:xeme' }
 ];
 
 /* ---------------- calendar: the same Mondays as FS_WEEKS in build-it.html ---------------- */
@@ -269,6 +279,70 @@ var LOGKEY = 'stepSession-' + CLASS + '-' + iso(now());
 try { var saved = JSON.parse(localStorage.getItem(LOGKEY) || '[]'); if (saved && saved.length) LOG = saved; } catch (e) {}
 function saveLog() { try { localStorage.setItem(LOGKEY, JSON.stringify(LOG)); } catch (e) {} }
 
+/* ---------------- sending each summary to the Google Form ---------------- */
+var TRIAL = /[?&]date=\d{4}-\d{2}-\d{2}/.test(location.search);   // trying another day: nothing is sent
+var SENDING = !!(FORM && FORM.url) && !TRIAL;
+var OUTKEY = 'stepSession-' + CLASS + '-outbox';                   // one outbox per class, so rows never reach another class's form
+var MEMQ = [];
+function outbox(v) {
+  if (v) { try { localStorage.setItem(OUTKEY, JSON.stringify(v)); } catch (e) { MEMQ = v; } return v; }
+  try { var q = localStorage.getItem(OUTKEY); return q ? JSON.parse(q) : MEMQ.slice(); } catch (e) { return MEMQ.slice(); }
+}
+function postOne(row) {
+  var body = new URLSearchParams();
+  Object.keys(FORM.fields).forEach(function (k) { body.append(FORM.fields[k], row[k] == null ? '' : String(row[k])); });
+  return fetch(FORM.url, { method: 'POST', mode: 'no-cors', body: body });
+}
+var flushing = false;
+function flush() {
+  if (!SENDING || flushing) return; var q = outbox(); if (!q.length) return;
+  if (navigator.onLine === false) return;
+  flushing = true;
+  postOne(q[0]).then(function () { var r = outbox(); r.shift(); outbox(r); flushing = false; showSend(); flush(); })
+    .catch(function () { flushing = false; showSend(); });
+}
+function queueRow(row) { var q = outbox(); q.push(row); outbox(q); flush(); }
+function isWaiting(id) { return outbox().some(function (r) { return r.id === id; }); }
+/* the small marker in the corner and the line on the summary */
+var lastSent = '';
+function showSend() {
+  var n = SENDING ? outbox().length : 0, p = document.getElementById('pend');
+  if (p) { p.textContent = '\u23f3 ' + n + ' to send'; p.style.display = n ? 'block' : 'none'; }
+  var st = document.getElementById('sendState');
+  if (st && lastSent) {
+    var w = isWaiting(lastSent);
+    st.className = 'send ' + (w ? 'wait' : 'ok');
+    st.textContent = w ? '\u23f3 Waiting to send. It goes by itself when this iPad is online with this page open.' : '\u2713 Sent to the Sheet.';
+  }
+}
+if (SENDING) { setInterval(function () { flush(); showSend(); }, 5000); window.addEventListener('online', flush); }
+
+/* this week's checks on this iPad, so Friday's page can fill in Wednesday and Thursday */
+var WEEKKEY = 'stepWeek-' + CLASS + '-' + iso(mondayOf(now()));
+var WEEK = {};
+try { WEEK = JSON.parse(localStorage.getItem(WEEKKEY) || '{}') || {}; } catch (e) {}
+try { for (var wi = localStorage.length - 1; wi >= 0; wi--) { var wk0 = localStorage.key(wi); if (wk0 && wk0.indexOf('stepWeek-' + CLASS + '-') === 0 && wk0 !== WEEKKEY) localStorage.removeItem(wk0); } } catch (e) {}
+function weekSet(name, step, dayKey, ok) { WEEK[name + '|' + step + '|' + dayKey] = !!ok; try { localStorage.setItem(WEEKKEY, JSON.stringify(WEEK)); } catch (e) {} }
+function weekGet(name, step, dayKey) { var v = WEEK[name + '|' + step + '|' + dayKey]; return v === undefined ? null : v; }
+function plainRow() {
+  var a = S.day.act, sayN = S.say.ok + S.say.help, t = [];
+  t.push('Say it: ' + S.say.ok + ' of ' + sayN + ' with no help.');
+  t.push('Activity: ' + S.act.first + ' of ' + S.act.total + (a.type === 'swap' ? ' named with no help.' : (a.nohelp ? ' right, no help.' : ' right first time.')));
+  var misses = S.act.misses.slice(); if (S.check.miss) misses.push('Check: ' + S.check.miss);
+  if (misses.length) t.push('Missed: ' + misses.join('; '));
+  if (S.check.show) {
+    var ready = S.check.ok && S.check.wed && S.check.thu;
+    t.push('Wednesday check ' + (S.check.wed ? 'right' : 'not yet') + ', Thursday check ' + (S.check.thu ? 'right' : 'not yet') + '.');
+    t.push('Ready to move on: ' + (ready ? 'yes.' : 'not yet.'));
+  }
+  if (OV.day || OV.step) t.push('(Session chosen in Adults.)');
+  var d = new Date(), txt = t.join(' ');
+  var sid = S.L.code + '-' + iso(d).replace(/-/g, '') + '-' + pad(d.getHours()) + pad(d.getMinutes()) + '-' + Math.random().toString(36).slice(2, 5);
+  return { id: sid, learner: S.L.name, session: sid, gap: S.L.code + '-STEP' + S.step, activity: 'Step session: ' + S.day.label,
+    item: S.check.show ? 'Check: ' + S.act.first + ' out of ' + S.act.total + ' with no help' : 'Check: ' + S.check.text,
+    first: S.check.ok ? 'Correct' : 'Incorrect', answer: txt.length > 900 ? txt.slice(0, 897) + '...' : txt, attempts: 1, time: d.toISOString() };
+}
+
 var app = document.getElementById('app');
 var STAGES = [['tell', 'Tell them'], ['say', 'Say it'], ['act', 'Activity'], ['check', 'Check']];
 function header() {
@@ -296,7 +370,9 @@ function home() {
   render([
     adultBar('Adults \u00b7 ' + CLASS, '<b>Step ' + p.step + ': ' + esc(st.title) + '.</b> ' + niceDate(p.date) + '. Session: <b>' + day.label + '</b>' + (day.sub ? ' (' + day.sub + ')' : '') +
       (p.auto ? '' : ' (chosen in Adults)') + '. About 5 minutes, one learner at a time.' + (p.note ? '<br>' + esc(p.note) : '') +
-      (LOG.length ? '<br>' + LOG.length + ' done on this iPad today. The summaries are in Adults.' : '')),
+      (LOG.length ? '<br>' + LOG.length + ' done on this iPad today. The summaries are in Adults.' : '') +
+      (TRIAL ? '<br><b>Trying another day</b> (date in the address), so nothing is sent.' : '') +
+      (SENDING && outbox().length ? '<br>\u23f3 ' + outbox().length + ' waiting to send. Keep this page open while the iPad is online.' : '')),
     el('div', { class: 'today' }, ['Who is learning now?']), grid
   ]);
 }
@@ -493,15 +569,16 @@ function check() {
     line.appendChild(document.createTextNode(' ' + words.slice(n).join(' ')));
     res.appendChild(line);
   });
-  var ans = { wed: null, thu: null }, doneB = btn('See the summary', '', function () { S.check = { ok: S.act.first >= c.pass, show: true, wed: ans.wed, thu: ans.thu }; summary(); });
-  doneB.disabled = true;
+  var ans = { wed: weekGet(S.L.name, S.step, 'paper'), thu: weekGet(S.L.name, S.step, 'use') }, filled = (ans.wed !== null || ans.thu !== null), doneB = btn('See the summary', '', function () { S.check = { ok: S.act.first >= c.pass, show: true, wed: ans.wed, thu: ans.thu }; summary(); });
   function q(key, label) {
     var y = btn('Right', 'ok', function () { ans[key] = true; y.classList.add('sel'); n.classList.remove('sel'); upd(); }),
         n = btn('Not yet', 'warn', function () { ans[key] = false; n.classList.add('sel'); y.classList.remove('sel'); upd(); });
+    if (ans[key] === true) y.classList.add('sel'); if (ans[key] === false) n.classList.add('sel');
     return el('div', { class: 'q sys' }, [label, y, n]);
   }
   function upd() { doneB.disabled = (ans.wed === null || ans.thu === null); }
-  render([adultBar('Check · no help', 'Go through the answers together: the subjects are in orange. Then tap how the checks went earlier in the week (from the record sheet).'),
+  upd();
+  render([adultBar('Check · no help', 'Go through the answers together: the subjects are in orange. Then ' + (filled ? 'check how the checks went earlier in the week. This iPad has filled in the ones it has from this week: change any that are wrong.' : 'tap how the checks went earlier in the week.')),
     el('div', { class: 'stagecard' }, [el('div', { class: 'sayline' }, [S.act.first + ' out of ' + S.act.total]), res,
       q('wed', 'Wednesday’s check:'), q('thu', 'Thursday’s check:')]),
     el('div', { class: 'btnrow' }, [doneB])]);
@@ -511,6 +588,7 @@ function check() {
 function summary() {
   S.stage = 'summary';
   var a = S.day.act, rows = [], write, rep = false;
+  var lead = SENDING ? 'Recorded for “' + S.day.label + '”: ' : 'Write in the “' + S.day.label + '” column: ';
   var sayN = S.say.ok + S.say.help;
   rows.push(['Say it', S.say.ok + ' of ' + sayN + ' with no help']);
   var actLabel = a.type === 'swap' ? ' named with no help' : (a.nohelp ? ' right, no help' : ' right first time');
@@ -521,12 +599,12 @@ function summary() {
     var ready = S.check.ok && S.check.wed && S.check.thu;
     rows.push(['Check', (S.check.ok ? 'Right' : 'Not yet') + ': ' + S.act.first + ' out of ' + S.act.total + ' (4 or 5 needed). Wednesday ' + (S.check.wed ? 'right' : 'not yet') + ', Thursday ' + (S.check.thu ? 'right' : 'not yet') + '.']);
     rep = !ready;
-    write = 'Write in the “' + S.day.label + '” column: <b>' + S.act.first + ' / ' + S.act.total + '</b>. Ready to move on: <b>' +
+    write = lead + '<b>' + S.act.first + ' / ' + S.act.total + '</b>. Ready to move on: <b>' +
       (ready ? 'Yes</b>. Next is ' + esc(S.st.next) + '.' : 'Not yet</b>. Repeat Wednesday to Friday next week with new sentences.');
   } else {
     rows.push(['Check', '<span class="big">' + (S.check.ok ? '✓ Right' : '✗ Not yet') + '</span> “' + esc(S.check.text) + '”' + (S.check.miss ? '<ul><li>' + esc(S.check.miss) + '</li></ul>' : '')]);
     rep = !S.check.ok;
-    write = 'Write in the “' + S.day.label + '” column: <b>' + (S.check.ok ? '✓' : '✗') + '</b>' +
+    write = lead + '<b>' + (S.check.ok ? '✓' : '✗') + '</b>' +
       (S.act.misses.length || S.check.miss ? '. Notes: ' + (lastNoun() ? 'chooses the last word (watch for the last noun).' : 'see above.') : '.');
   }
   function lastNoun() { return (S.act.misses.join(' ') + ' ' + (S.check.miss || '')).indexOf('last word') >= 0; }
@@ -534,12 +612,16 @@ function summary() {
     '<div class="write' + (rep ? ' rep' : '') + '">' + write + '</div>';
   var rec = { name: S.L.name, icon: S.L.icon, step: S.step, dayKey: S.dayKey, label: S.day.label, when: niceDate(S.date), html: html };
   LOG = LOG.filter(function (r) { return !(r.name === rec.name && r.step === rec.step && r.dayKey === rec.dayKey); }); LOG.push(rec); saveLog();
+  if (!TRIAL && !S.check.show) weekSet(S.L.name, S.step, S.dayKey, S.check.ok);
+  if (SENDING) { var row = plainRow(); lastSent = row.id; queueRow(row); }
+  var how = TRIAL ? '<b>Trying another day, so this was not sent.</b> ' : (SENDING ? '<b>Recorded automatically.</b> <span id="sendState" class="send"></span> ' : 'Copy this onto the record sheet. ');
   var box = el('div', { class: 'sum' });
   var h = el('h2', null, [iconNode(S.L), S.L.name + ' · ' + niceDate(S.date) + ' · Step ' + S.step + ' · ' + S.day.label]);
   box.appendChild(h); box.appendChild(el('div', { html: html }));
-  render([adultBar('Summary', 'Copy this onto the record sheet. ' + esc(S.st.watch)),
+  render([adultBar('Summary', how + esc(S.st.watch)),
     el('div', { class: 'stagecard' }, [box]),
     el('div', { class: 'btnrow' }, [btn('Next learner', '', home)])]);
+  showSend();
 }
 
 /* ---------------- adults panel ---------------- */
@@ -550,17 +632,22 @@ function openAdults() {
     'Step: <select id="aStep"><option value="0">Automatic</option>' + Object.keys(STEPS).map(function (k) { return '<option value="' + k + '"' + (OV.step === +k ? ' selected' : '') + '>Step ' + k + '</option>'; }).join('') + '</select></p>';
   h += '<h2>Today’s summaries on this iPad</h2>';
   h += LOG.length ? LOG.map(function (r) { return '<div class="log sum"><b>' + esc(r.name) + ' · ' + r.when + ' · Step ' + r.step + ' · ' + r.label + '</b>' + r.html + '</div>'; }).join('') : '<p>None yet.</p>';
-  h += '<p><button id="aClose" type="button">Close</button> <button id="aHome" type="button">Back to the pictures</button> <button id="aClear" type="button">Clear today’s summaries</button></p>';
-  h += '<p style="color:#646b78;font-size:15px">Nothing is sent anywhere from this page and no names are used. Summaries stay on this iPad for today only.</p>';
+  var nq = SENDING ? outbox().length : 0;
+  h += '<p><button id="aClose" type="button">Close</button> <button id="aHome" type="button">Back to the pictures</button> <button id="aClear" type="button">Clear today’s summaries</button>' + (SENDING ? ' <button id="aSend" type="button">Send now</button>' : '') + '</p>';
+  h += '<p style="color:#646b78;font-size:15px">' + (TRIAL ? 'Trying another day (date in the address): nothing is sent.' :
+    (SENDING ? 'Each summary goes to the Sheet by itself as one row, with the picture name only. Waiting to send: <b>' + nq + '</b>. Doing a session again sends a new row, and the newest one counts. The list above stays on this iPad for today only, and clearing it does not remove anything from the Sheet.' :
+      'Nothing is sent anywhere from this page and no names are used. Summaries stay on this iPad for today only.')) + '</p>';
   card.innerHTML = h; adults.classList.add('open');
   document.getElementById('aDay').onchange = function () { OV.day = this.value; };
   document.getElementById('aStep').onchange = function () { OV.step = +this.value; };
   document.getElementById('aClose').onclick = function () { adults.classList.remove('open'); if (!S) home(); };
   document.getElementById('aHome').onclick = function () { adults.classList.remove('open'); home(); };
   document.getElementById('aClear').onclick = function () { LOG = []; saveLog(); openAdults(); };
+  if (SENDING) document.getElementById('aSend').onclick = function () { flush(); setTimeout(openAdults, 1500); };
 }
 document.getElementById('adultBtn').onclick = openAdults;
 home();
+flush(); showSend();
 })();
 </script>
 </body>
